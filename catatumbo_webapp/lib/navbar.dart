@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'session.dart';
-import 'user.dart';
+import 'models/user.dart';
 
 class Navbar extends StatelessWidget implements PreferredSizeWidget {
   const Navbar({super.key});

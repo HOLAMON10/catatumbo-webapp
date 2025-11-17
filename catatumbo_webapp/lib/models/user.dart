@@ -1,3 +1,7 @@
+import 'dart:convert';
+import '../api.dart';
+import 'dart:html' as html;
+
 class UserData {
   static String? firstName;
   static String? lastName;
@@ -7,7 +11,6 @@ class UserData {
   static dynamic userType;
 
   static void setFromJson(Map<String, dynamic> json) {
-    print(json);
     firstName = json['firstName'];
     lastName = json['lastName'];
     email = json['email'];
@@ -16,6 +19,24 @@ class UserData {
         ? List<String>.from(json['allowedPermissions'])
         : null;
     userType = json['userType'];
+  }
+  static Future<void> loadProfile() async {
+    final userId = html.window.localStorage['userId'];
+
+    if (userId == null || userId.isEmpty) return;
+
+    final response = await Api.send(
+      'POST',
+      '/users/search',
+      payload: { "_id": userId },   // ⭐ SAFE — EXACT MATCH ONLY
+    );
+
+    final data = jsonDecode(response.body);
+    final detail = data['detail'];
+
+    if (detail is List && detail.isNotEmpty) {
+      setFromJson(detail[0]);
+    }
   }
 
   static void clear() {

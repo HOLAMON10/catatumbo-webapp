@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'session.dart';
 import 'dart:convert';
-import 'user.dart';
+import 'models/user.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -60,7 +60,7 @@ class _HomePageState extends State<HomePage> {
         final Map<String, dynamic> userMap = details[0];
 
         UserData.setFromJson(userMap);
-
+        setState(() {});
         Navigator.pushReplacementNamed(context, '/dashboard');
         return;
       }
