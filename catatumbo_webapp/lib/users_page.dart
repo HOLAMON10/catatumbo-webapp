@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'navbar.dart';
-import 'enums/catalogs.dart';
 
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
