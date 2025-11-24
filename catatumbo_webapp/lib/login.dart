@@ -3,6 +3,7 @@ import 'api.dart';
 import 'session.dart';
 import 'dart:convert';
 import 'models/user.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -17,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   bool loading = false;
   String message = '';
 
+  // 🌙 SEND LOGIN REQUEST
   Future<void> login() async {
     setState(() {
       loading = true;
@@ -47,20 +49,19 @@ class _HomePageState extends State<HomePage> {
         Session.jwt = token;
         Session.expiry = payload['exp'];
         await Session.save();
-        final userResponse = await Api.send(
-        'POST',
-        '/users/search',
-        payload: {
-          'email': emailCtrl.text,
-        },
-      );
-        final body = jsonDecode(userResponse.body);
 
+        final userResponse = await Api.send(
+          'POST',
+          '/users/search',
+          payload: { 'email': emailCtrl.text },
+        );
+
+        final body = jsonDecode(userResponse.body);
         final List<dynamic> details = body['detail'];
         final Map<String, dynamic> userMap = details[0];
 
         UserData.setFromJson(userMap);
-        setState(() {});
+
         Navigator.pushReplacementNamed(context, '/dashboard');
         return;
       }
@@ -79,6 +80,88 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // 🌙 SEND RECOVERY EMAIL
+  Future<void> sendRecoveryEmail(String email) async {
+    try {
+      final res = await Api.send(
+        'PUT',
+        '/auth/createrecoverypasswordtoken',
+        requireAuth: false,
+        payload: { 'email': email.trim() },
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (data['code'] == 'success') {
+        Navigator.pop(context); // close dialog
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Recovery Email Sent"),
+            content: const Text(
+              "If the address exists, a 6-digit recovery code "
+              "has been sent to your inbox.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              )
+            ],
+          ),
+        );
+      } else {
+        throw data['detail'];
+      }
+    } catch (err) {
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Error"),
+          content: Text("Could not send recovery email: $err"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            )
+          ],
+        ),
+      );
+    }
+  }
+
+  // 🌙 ASK FOR EMAIL POPUP
+  void openForgotPasswordDialog() {
+    final TextEditingController forgotCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Forgot Password"),
+        content: TextField(
+          controller: forgotCtrl,
+          decoration: const InputDecoration(
+            labelText: "Enter your email",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              sendRecoveryEmail(forgotCtrl.text);
+            },
+            child: const Text("Send"),
+          )
+        ],
+      ),
+    );
+  }
+
+  // 🌙 UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,6 +205,13 @@ class _HomePageState extends State<HomePage> {
                     : const Text("Log In"),
               ),
               const SizedBox(height: 14),
+
+              // 🌙 ADD FORGOT PASSWORD BUTTON HERE
+              TextButton(
+                onPressed: openForgotPasswordDialog,
+                child: const Text("Forgot password?"),
+              ),
+
               Text(
                 message,
                 style: const TextStyle(color: Colors.redAccent),

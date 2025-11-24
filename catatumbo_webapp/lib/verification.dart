@@ -53,42 +53,50 @@ class _VerifyAndSetPasswordPageState extends State<VerifyAndSetPasswordPage> {
   }
 
   Future<void> changePassword() async {
-    final password = passCtrl.text;
-    final confirm = confirmCtrl.text;
+  final password = passCtrl.text.trim();
+  final confirm = confirmCtrl.text.trim();
 
-    if (password != confirm) {
-      showMsg("Passwords do not match");
-      return;
-    }
-
-    if (userId == null) {
-      showMsg("Invalid user");
-      return;
-    }
-
-    try {
-      final response = await Api.send(
-        'PUT',
-        '/auth/changepassword',
-        requireAuth: false,
-        payload: {
-          '_id': userId,
-          'currentPassword': password,
-          'newPassword': password,
-        },
-      );
-
-      final decoded = jsonDecode(response.body);
-
-      if (decoded['code'] != 'error') {
-        showMsg("Password updated successfully!");
-      } else {
-        showMsg("Failed to update password");
-      }
-    } catch (ex) {
-      showMsg("Error updating password");
-    }
+  if (password != confirm) {
+    showMsg("Passwords do not match");
+    return;
   }
+
+  if (userId == null) {
+    showMsg("Invalid user");
+    return;
+  }
+
+  try {
+    final response = await Api.send(
+      'PUT',
+      '/auth/changepassword',
+      requireAuth: false,
+      payload: {
+        '_id': userId,
+        'currentPassword': password,
+        'newPassword': password,
+      },
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded['code'] == 'success') {
+      showMsg("Password updated successfully!");
+
+      // ⭐ Redirect to login AFTER success
+      Future.delayed(const Duration(milliseconds: 800), () {
+        Navigator.pushReplacementNamed(context, "/");
+      });
+    } else {
+      showMsg(decoded['detail']?.toString() ?? "Failed to update password");
+      // ⭐ stay here
+    }
+  } catch (ex) {
+    showMsg("Error updating password");
+    // ⭐ stay here
+  }
+}
+
 
   void showMsg(String text) {
     ScaffoldMessenger.of(context)

@@ -20,7 +20,7 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
         // HOME BUTTON
         TextButton(
           onPressed: () {
-            Navigator.pushReplacementNamed(context, '/dashboard');
+            Navigator.pushNamed(context, '/dashboard');
           },
           child: const Text(
             "Home",
@@ -35,9 +35,9 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
           position: PopupMenuPosition.under,
           onSelected: (value) {
             if (value == "users") {
-              Navigator.pushReplacementNamed(context, '/users');
+              Navigator.pushNamed(context, '/users');
             } else if (value == "access") {
-              Navigator.pushReplacementNamed(context, '/access-profiles');
+              Navigator.pushNamed(context, '/access-profiles');
             }
           },
           child: const Padding(
@@ -62,7 +62,7 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
         // EMPLOYEES BUTTON
         TextButton(
           onPressed: () {
-            Navigator.pushReplacementNamed(context, '/employees');
+            Navigator.pushNamed(context, '/employees');
           },
           child: const Text(
             "Employees",
@@ -80,6 +80,7 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
               if (value == "logout") {
                 await Session.clear();
                 UserData.clear();
+                // Logout SHOULD use replacement
                 Navigator.pushReplacementNamed(context, '/');
               }
             },

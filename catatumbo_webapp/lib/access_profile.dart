@@ -4,6 +4,7 @@ import 'api.dart';
 import 'navbar.dart';
 import 'enums/catalogs.dart';
 import 'package:uuid/uuid.dart';
+import 'models/user.dart';
 
 class AccessProfilesPage extends StatefulWidget {
   const AccessProfilesPage({super.key});
@@ -19,11 +20,67 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
   bool loadingProfiles = true;
   bool loadingMenus = true;
 
+  // Search/Filter state
+  final TextEditingController searchCtrl = TextEditingController();
+  String searchQuery = '';
+  bool showActiveOnly = false;
+  bool showInactiveOnly = false;
+
+  // Permission helper
+  bool hasPermission(String perm) {
+    return UserData.allowedPermissions?.contains(perm) ?? false;
+  }
+
   @override
   void initState() {
     super.initState();
-    loadMenuOptions();
-    loadProfiles();
+
+    if (hasPermission("userCanManageAccessLevels")) {
+      loadMenuOptions();
+      loadProfiles();
+    } else {
+      loadingMenus = false;
+      loadingProfiles = false;
+    }
+
+    searchCtrl.addListener(() {
+      setState(() {
+        searchQuery = searchCtrl.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    searchCtrl.dispose();
+    super.dispose();
+  }
+
+  // --------------------------------------------------------------------------
+  // FILTER PROFILES
+  // --------------------------------------------------------------------------
+  List<Map<String, dynamic>> get filteredProfiles {
+    return profiles.where((p) {
+      // Filter by search query
+      if (searchQuery.isNotEmpty) {
+        final name = (p['name'] ?? '').toString().toLowerCase();
+        final description = (p['description'] ?? '').toString().toLowerCase();
+        final refCode = (p['referenceCode'] ?? '').toString().toLowerCase();
+
+        if (!name.contains(searchQuery) &&
+            !description.contains(searchQuery) &&
+            !refCode.contains(searchQuery)) {
+          return false;
+        }
+      }
+
+      // Filter by active status
+      final isActive = p['isActive'] == true;
+      if (showActiveOnly && !isActive) return false;
+      if (showInactiveOnly && isActive) return false;
+
+      return true;
+    }).toList();
   }
 
   // --------------------------------------------------------------------------
@@ -31,7 +88,8 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
   // --------------------------------------------------------------------------
   Future<void> loadProfiles() async {
     try {
-      final res = await Api.send('POST', '/accessprofiles/search', payload: {});
+      final res =
+          await Api.send('POST', '/accessprofiles/search', payload: {});
       final body = jsonDecode(res.body);
 
       final detail = body["detail"];
@@ -49,10 +107,8 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
       });
     } catch (e) {
       print("Error loading profiles: $e");
-      setState(() {
-        profiles = [];
-        loadingProfiles = false;
-      });
+      profiles = [];
+      loadingProfiles = false;
     }
   }
 
@@ -76,29 +132,69 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
       });
     } catch (e) {
       print("Error loading menu options: $e");
-      setState(() {
-        menuOptions = [];
-        loadingMenus = false;
-      });
+      loadingMenus = false;
     }
   }
 
   // --------------------------------------------------------------------------
-  // DELETE ACCESS PROFILE
+  // DELETE (INACTIVATE)
   // --------------------------------------------------------------------------
-  Future<void> deleteProfile(String id) async {
+  Future<void> deleteProfile(Map<String, dynamic> profile) async {
+    if (!hasPermission("userCanManageAccessLevels")) return;
+
+    final shouldDeactivate = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Confirm Inactivation"),
+        content: Text(
+          'Are you sure you want to inactivate "${profile["name"]}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Inactivate"),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDeactivate != true) return;
+
     try {
-      await Api.send('DELETE', '/accessprofiles/remove/$id');
+      final payload = {
+        ...profile,
+        "isActive": false,
+      };
+
+      await Api.send(
+        'PUT',
+        '/accessprofiles',
+        payload: payload,
+      );
     } catch (e) {
-      print("Error deleting profile: $e");
+      print("Error deactivating profile: $e");
     }
+
     loadProfiles();
   }
 
   // --------------------------------------------------------------------------
-  // OPEN MODAL (INSIDE THIS COMPONENT)
+  // OPEN MODAL
   // --------------------------------------------------------------------------
   void openProfileModal({Map<String, dynamic>? profile}) {
+    if (!hasPermission("userCanManageAccessLevels")) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You do not have permission to manage access levels."),
+        ),
+      );
+      return;
+    }
+
     final nameCtrl = TextEditingController(text: profile?["name"] ?? "");
     final descCtrl =
         TextEditingController(text: profile?["description"] ?? "");
@@ -110,10 +206,8 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
     List<String> selectedMenuOptions = [];
 
     if (profile != null && profile["menuOptions"] is List) {
-      selectedMenuOptions = (profile["menuOptions"] as List)
-          .map((e) => e.toString())
-          .toSet()
-          .toList();
+      selectedMenuOptions =
+          (profile["menuOptions"] as List).map((e) => e.toString()).toList();
     }
 
     showDialog(
@@ -138,42 +232,41 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                     height: 430,
                     child: TabBarView(
                       children: [
-                        // --------------------------------------------------
-                        // TAB 1: PROFILE INFO
-                        // --------------------------------------------------
                         Padding(
                           padding: const EdgeInsets.all(20),
                           child: ListView(
                             children: [
                               TextField(
                                 controller: nameCtrl,
-                                decoration:
-                                    const InputDecoration(labelText: "Name"),
+                                decoration: const InputDecoration(
+                                    labelText: "Name"),
                               ),
                               TextField(
                                 controller: descCtrl,
-                                decoration:
-                                    const InputDecoration(labelText: "Description"),
+                                decoration: const InputDecoration(
+                                    labelText: "Description"),
                               ),
                               TextField(
                                 controller: refCtrl,
                                 decoration: const InputDecoration(
                                     labelText: "Reference Code"),
                               ),
-                              SwitchListTile(
-                                title: const Text("Active"),
-                                value: isActive,
-                                onChanged: (v) {
-                                  setState(() => isActive = v);
+
+                              StatefulBuilder(
+                                builder: (context, modalSetState) {
+                                  return SwitchListTile(
+                                    title: const Text("Active"),
+                                    value: isActive,
+                                    onChanged: (v) {
+                                      modalSetState(() => isActive = v);
+                                    },
+                                  );
                                 },
                               ),
                             ],
                           ),
                         ),
 
-                        // --------------------------------------------------
-                        // TAB 2: MENU OPTIONS MULTI-SELECT
-                        // --------------------------------------------------
                         Padding(
                           padding: const EdgeInsets.all(20),
                           child: StatefulBuilder(
@@ -208,9 +301,6 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                     ),
                   ),
 
-                  // ----------------------------------------------------------
-                  // ACTION BUTTONS
-                  // ----------------------------------------------------------
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -220,63 +310,66 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                       ),
                       ElevatedButton(
                         onPressed: () async {
-  final payload = {
-    "name": nameCtrl.text,
-    "description": descCtrl.text,
-    "referenceCode": refCtrl.text,
-    "isActive": isActive,
-    "menuOptions": selectedMenuOptions.toSet().toList(),
-  };
+                          final payload = {
+                            "name": nameCtrl.text,
+                            "description": descCtrl.text,
+                            "referenceCode": refCtrl.text,
+                            "isActive": isActive,
+                            "menuOptions":
+                                selectedMenuOptions.toSet().toList(),
+                          };
 
-  try {
-    final res = await Api.send(
-      profile == null ? 'POST' : 'PUT',
-      '/accessprofiles${profile == null ? '' : ''}',
-      payload: profile == null ? payload : {...payload, "_id": profile["_id"]},
-    );
+                          try {
+                            final res = await Api.send(
+                              profile == null ? 'POST' : 'PUT',
+                              '/accessprofiles',
+                              payload: profile == null
+                                  ? payload
+                                  : {...payload, "_id": profile["_id"]},
+                            );
 
-    final body = jsonDecode(res.body);
+                            final body = jsonDecode(res.body);
 
-    // ✨ VALIDATION ERROR?
-    if (body["code"] != "success") {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text("Validation Error"),
-          content: Text(body["detail"]?.toString() ?? "Unknown validation issue"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-      return; // ❌ Do NOT close the modal
-    }
+                            if (body["code"] != "success") {
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title:
+                                      const Text("Validation Error"),
+                                  content: Text(body["detail"]
+                                          ?.toString() ??
+                                      "Unknown validation issue"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context),
+                                      child: const Text("OK"),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
 
-    // 🌿 SUCCESS → close modal + reload
-    Navigator.pop(context);
-    loadProfiles();
-
-  } catch (e) {
-    // unexpected server crash or network issue
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Unexpected Error"),
-        content: Text(e.toString()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          )
-        ],
-      ),
-    );
-  }
-},
-
+                            Navigator.pop(context);
+                            loadProfiles();
+                          } catch (e) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text("Unexpected Error"),
+                                content: Text(e.toString()),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context),
+                                    child: const Text("OK"),
+                                  )
+                                ],
+                              ),
+                            );
+                          }
+                        },
                         child: Text(profile == null ? "Create" : "Save"),
                       ),
                       const SizedBox(width: 12),
@@ -298,6 +391,19 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
   Widget build(BuildContext context) {
     final loading = loadingProfiles || loadingMenus;
 
+    if (!hasPermission("userCanManageAccessLevels")) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            "You do not have permission to manage access profiles.",
+            style: TextStyle(fontSize: 20),
+          ),
+        ),
+      );
+    }
+
+    final displayProfiles = filteredProfiles;
+
     return Scaffold(
       appBar: const Navbar(),
       body: loading
@@ -306,9 +412,7 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // ------------------------------------------------------
-                  // HEADER
-                  // ------------------------------------------------------
+                  // Header Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -319,18 +423,89 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: () => openProfileModal(),
-                        child: const Text("Create Profile"),
-                      ),
+                      if (hasPermission("userCanManageAccessLevels"))
+                        ElevatedButton(
+                          onPressed: () => openProfileModal(),
+                          child: const Text("Create Profile"),
+                        ),
                     ],
                   ),
 
                   const SizedBox(height: 20),
 
-                  // ------------------------------------------------------
-                  // TABLE
-                  // ------------------------------------------------------
+                  // Search and Filter Row
+                  Row(
+                    children: [
+                      // Search Bar
+                      Expanded(
+                        child: TextField(
+                          controller: searchCtrl,
+                          decoration: InputDecoration(
+                            labelText: "Search profiles...",
+                            hintText: "Name, description, or reference code",
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      searchCtrl.clear();
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // Active Filter
+                      FilterChip(
+                        label: const Text("Active Only"),
+                        selected: showActiveOnly,
+                        onSelected: (selected) {
+                          setState(() {
+                            showActiveOnly = selected;
+                            if (selected) showInactiveOnly = false;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // Inactive Filter
+                      FilterChip(
+                        label: const Text("Inactive Only"),
+                        selected: showInactiveOnly,
+                        onSelected: (selected) {
+                          setState(() {
+                            showInactiveOnly = selected;
+                            if (selected) showActiveOnly = false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Results count
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Showing ${displayProfiles.length} of ${profiles.length} profiles",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Data Table
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -343,7 +518,7 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                           DataColumn(label: Text("Menu Options")),
                           DataColumn(label: Text("Actions")),
                         ],
-                        rows: profiles.map((p) {
+                        rows: displayProfiles.map((p) {
                           final menuIds = (p["menuOptions"] ?? []) as List;
 
                           final names = menuIds.map((id) {
@@ -354,28 +529,55 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                             return found["name"] ?? "Unknown";
                           }).join(", ");
 
+                          final bool active = p["isActive"] == true;
+
                           return DataRow(
                             cells: [
                               DataCell(Text(p["name"] ?? "")),
                               DataCell(Text(p["description"] ?? "")),
                               DataCell(Text(p["referenceCode"] ?? "")),
                               DataCell(
-                                  Text((p["isActive"] == true) ? "Yes" : "No")),
-                              DataCell(Text(names)),
-                              DataCell(Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () =>
-                                        openProfileModal(profile: p),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      active ? Icons.check_circle : Icons.cancel,
+                                      color: active ? Colors.green : Colors.red,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(active ? "Yes" : "No"),
+                                  ],
+                                ),
+                              ),
+                              DataCell(
+                                SizedBox(
+                                  width: 200,
+                                  child: Text(
+                                    names.isEmpty ? "None" : names,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () =>
-                                        deleteProfile(p["_id"]),
-                                  ),
-                                ],
-                              )),
+                                ),
+                              ),
+                              DataCell(
+                                Row(
+                                  children: [
+                                    if (hasPermission("userCanManageAccessLevels"))
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed: () =>
+                                            openProfileModal(profile: p),
+                                      ),
+                                    if (active &&
+                                        hasPermission("userCanManageAccessLevels"))
+                                      IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () => deleteProfile(p),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ],
                           );
                         }).toList(),
