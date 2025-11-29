@@ -33,7 +33,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      // ⭐ STATIC ROUTES (required by Flutter Web)
       routes: {
         "/": (_) => const HomePage(),
         "/recover": (_) => const RecoverPasswordPage(),
@@ -43,7 +42,6 @@ class MyApp extends StatelessWidget {
         "/employees": (_) => AuthGuard(child: const PlaceholderPage("Employees")),
       },
 
-      // ⭐ verify token dynamic route
       onGenerateRoute: (settings) {
         final uri = Uri.tryParse(settings.name ?? "/") ?? Uri(path: "/");
 
@@ -56,7 +54,7 @@ class MyApp extends StatelessWidget {
           );
         }
 
-        return null; // fallback to static routes
+        return null; 
       },
     );
   }

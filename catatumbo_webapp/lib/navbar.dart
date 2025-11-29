@@ -12,7 +12,6 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final displayName =
         "${UserData.firstName ?? ''} ${UserData.lastName ?? ''}".trim();
-
     return AppBar(
       backgroundColor: Colors.blueGrey,
       title: const Text("My App", style: TextStyle(color: Colors.white)),

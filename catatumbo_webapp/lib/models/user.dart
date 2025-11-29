@@ -5,6 +5,7 @@ class UserData {
   static dynamic accessProfile;
   static List<String>? allowedPermissions;
   static dynamic userType;
+  static String? dashboard;
 
   static void setFromJson(Map<String, dynamic> json) {
     firstName = json['firstName'];
@@ -15,6 +16,7 @@ class UserData {
         ? List<String>.from(json['allowedPermissions'])
         : null;
     userType = json['userType'];
+    dashboard = json['dashboardUrl'];
   }
 
   static void clear() {
@@ -24,5 +26,6 @@ class UserData {
     accessProfile = null;
     allowedPermissions = null;
     userType = null;
+    dashboard = null;
   }
 }

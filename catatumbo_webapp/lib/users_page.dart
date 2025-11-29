@@ -231,6 +231,9 @@ class _UsersPageState extends State<UsersPage> {
     final lastCtrl = TextEditingController(text: user?['lastName'] ?? '');
     final emailCtrl = TextEditingController(text: user?['email'] ?? '');
     final typeCtrl = TextEditingController(text: user?['userType'] ?? '');
+    final dashboardUrlCtrl =
+    TextEditingController(text: user?['dashboardUrl'] ?? '');
+
 
     String? userId = user?['_id'];
     String? selectedMenuOption = user?['accessProfile'];
@@ -287,6 +290,10 @@ class _UsersPageState extends State<UsersPage> {
                                 TextField(
                                   controller: typeCtrl,
                                   decoration: const InputDecoration(labelText: "User Type"),
+                                ),
+                                TextField(
+                                  controller: dashboardUrlCtrl,
+                                  decoration: const InputDecoration(labelText: "Dashboard URL"),
                                 ),
 
                                 const SizedBox(height: 20),
@@ -366,6 +373,7 @@ class _UsersPageState extends State<UsersPage> {
                     "email": emailCtrl.text,
                     "userType": typeCtrl.text,
                     "accessProfile": selectedMenuOption,
+                    "dashboardUrl": dashboardUrlCtrl.text,
                     "isActive": isActive,
                   };
 
