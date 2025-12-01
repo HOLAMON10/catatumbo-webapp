@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'employees_page.dart';
 
 import 'session.dart';
 import 'login.dart';
@@ -39,7 +40,7 @@ class MyApp extends StatelessWidget {
         "/dashboard": (_) => AuthGuard(child: const DashboardPage()),
         "/users": (_) => AuthGuard(child: const UsersPage()),
         "/access-profiles": (_) => AuthGuard(child: const AccessProfilesPage()),
-        "/employees": (_) => AuthGuard(child: const PlaceholderPage("Employees")),
+        "/employees": (_) => AuthGuard(child: const EmployeesPage()),
       },
 
       onGenerateRoute: (settings) {
