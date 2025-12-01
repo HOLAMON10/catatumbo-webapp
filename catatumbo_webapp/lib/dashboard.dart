@@ -31,9 +31,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final dashboardUrl = UserData.dashboard;
 
-    if (dashboardUrl == null || dashboardUrl.isEmpty) {
-      throw Exception("User dashboard URL is missing");
-    }
+    
+      if (dashboardUrl == null || dashboardUrl.isEmpty) {
+        return; // stop setup gracefully
+      }
 
     final uri = Uri.parse(dashboardUrl);
     baseUrl = "${uri.scheme}://${uri.host}/${uri.pathSegments[0]}";
