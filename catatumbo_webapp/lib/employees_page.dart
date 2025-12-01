@@ -363,10 +363,33 @@ class _EmployeesPageState extends State<EmployeesPage> {
                           item['modifiedBy']['username'] ??
                           '')
                       : (item['modifiedBy']?.toString() ?? '');
+
+                  // 🔹 CAMBIO AQUÍ: formatear la fecha en vez de mostrar milisegundos
+                  String formattedDate = '';
+                  if (ts != null) {
+                    int? millis;
+                    if (ts is num) {
+                      millis = ts.toInt();
+                    } else {
+                      millis = int.tryParse(ts.toString());
+                    }
+                    if (millis != null) {
+                      final date =
+                          DateTime.fromMillisecondsSinceEpoch(millis);
+                      final twoDigits = (int n) =>
+                          n.toString().padLeft(2, '0');
+                      formattedDate =
+                          '${twoDigits(date.day)}/${twoDigits(date.month)}/${date.year} '
+                          '${twoDigits(date.hour)}:${twoDigits(date.minute)}';
+                    } else {
+                      formattedDate = ts.toString();
+                    }
+                  }
+
                   return ListTile(
                     dense: true,
                     title: Text(by),
-                    subtitle: Text(ts.toString()),
+                    subtitle: Text(formattedDate),
                   );
                 },
               ),
