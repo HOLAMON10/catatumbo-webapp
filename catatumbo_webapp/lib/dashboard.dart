@@ -18,6 +18,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   final String viewId = "mongo-dashboard-sdk";
   bool _isRegistered = false;
+  bool _hasDashboard = true; // 🌙 the missing-dashboard truth
 
   late String baseUrl;
   late String dashboardId;
@@ -31,10 +32,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final dashboardUrl = UserData.dashboard;
 
-    
-      if (dashboardUrl == null || dashboardUrl.isEmpty) {
-        return; // stop setup gracefully
-      }
+    if (dashboardUrl == null || dashboardUrl.isEmpty) {
+      _hasDashboard = false;
+      setState(() {}); // 🔑 stop the spinner
+      return;
+    }
 
     final uri = Uri.parse(dashboardUrl);
     baseUrl = "${uri.scheme}://${uri.host}/${uri.pathSegments[0]}";
@@ -82,9 +84,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   dashboard.render(
                     document.getElementById("$containerId")
-                  ).then(() => {
-                    console.log("Dashboard rendered successfully");
-                  }).catch((err) => {
+                  ).catch((err) => {
                     console.error("Dashboard render error:", err);
                   });
 
@@ -96,17 +96,11 @@ class _DashboardPageState extends State<DashboardPage> {
                       window._filterBusy = true;
 
                       dashboard.setFilter(filters)
-                        .then(() => {
-                          console.log("Filters applied safely");
-                          window._filterBusy = false;
-                        })
+                        .then(() => window._filterBusy = false)
                         .catch((err) => {
                           console.error("Filter error:", err);
                           window._filterBusy = false;
-
-                          dashboard.refresh().catch(() => {
-                            setTimeout(() => dashboard.refresh(), 1000);
-                          });
+                          dashboard.refresh();
                         });
                     }
                   });
@@ -172,20 +166,45 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌑 EMPTY STATE
+    if (!_hasDashboard) {
+      return const Scaffold(
+        appBar: Navbar(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                "No dashboard connected",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Please contact your administrator to activate analytics.",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 🌘 LOADING STATE
     if (!_isRegistered) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
+    // 🌕 LIVE DASHBOARD
     return Scaffold(
       appBar: const Navbar(),
       body: Container(
         color: const Color(0xFFF4F6FA),
         child: Column(
           children: [
-
-            // 🌿 FILTER BAR (CONTAINED)
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1300),
@@ -238,7 +257,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
 
-            // 🌒 DASHBOARD (CENTERED CARD)
             Expanded(
               child: Center(
                 child: ConstrainedBox(

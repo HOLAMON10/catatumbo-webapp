@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:html' as html;
 
 import 'api.dart';
@@ -22,38 +23,43 @@ class Session {
     html.window.localStorage['expiry'] = expiry?.toString() ?? '';
   }
 
-  // ⭐ THIS NOW RESTORES USER DATA AUTOMATICALLY
+  // ✅ BULLETPROOF SESSION LOAD (NO MORE INFINITE HANGS)
   static Future<void> load() async {
-    jwt = html.window.localStorage['jwt'];
-    final expStr = html.window.localStorage['expiry'];
-
-    print("🔵 LOADING SESSION");
-    print("jwt raw = '$jwt'");
-    print("expiry raw = '$expStr'");
-
-    // If nothing stored → end session
-    if (jwt == null || jwt!.isEmpty || expStr == null || expStr.isEmpty) {
-      print("❌ Session incomplete — clearing");
-      clear();
-      UserData.clear();
-      return;
-    }
-
-    expiry = int.tryParse(expStr);
-    print("🟢 Parsed expiry = $expiry");
-
-    // Check expiration
-    if (isExpired) {
-      print("❌ Token expired — clearing");
-      clear();
-      UserData.clear();
-      return;
-    }
-
-    // ------------------------------
-    // ⭐ Decode JWT → extract userId
-    // ------------------------------
     try {
+      print("🔵 LOADING SESSION");
+
+      jwt = html.window.localStorage['jwt'];
+      final expStr = html.window.localStorage['expiry'];
+
+      print("jwt raw = '$jwt'");
+      print("expiry raw = '$expStr'");
+
+      // ------------------------------
+      // ❌ Missing session data
+      // ------------------------------
+      if (jwt == null || jwt!.isEmpty || expStr == null || expStr.isEmpty) {
+        print("❌ Session incomplete — clearing");
+        clear();
+        UserData.clear();
+        return;
+      }
+
+      expiry = int.tryParse(expStr);
+      print("🟢 Parsed expiry = $expiry");
+
+      // ------------------------------
+      // ❌ Expired token
+      // ------------------------------
+      if (isExpired) {
+        print("❌ Token expired — clearing");
+        clear();
+        UserData.clear();
+        return;
+      }
+
+      // ------------------------------
+      // ✅ Decode JWT → extract userId
+      // ------------------------------
       final parts = jwt!.split('.');
       final payload = jsonDecode(
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
@@ -61,22 +67,15 @@ class Session {
 
       userId = payload["user"];
       print("🟢 Extracted userId = $userId");
-    } catch (e) {
-      print("❌ Failed decoding JWT: $e");
-      clear();
-      UserData.clear();
-      return;
-    }
 
-    // ------------------------------
-    // ⭐ Fetch user from backend
-    // ------------------------------
-    try {
+      // ------------------------------
+      // ✅ Fetch user from backend (WITH TIMEOUT)
+      // ------------------------------
       final response = await Api.send(
         "POST",
         "/users/search",
         payload: {"_id": userId},
-      );
+      ).timeout(const Duration(seconds: 10)); // 🔥 HARD STOP
 
       final body = jsonDecode(response.body);
       final list = body["detail"] as List;
@@ -89,8 +88,22 @@ class Session {
         clear();
         UserData.clear();
       }
-    } catch (e) {
-      print("❌ Could not fetch user: $e");
+    }
+
+    // ------------------------------
+    // ⏱️ Network Timeout Protection
+    // ------------------------------
+    on TimeoutException {
+      print("⏱️ Session load timed out — forcing logout");
+      clear();
+      UserData.clear();
+    }
+
+    // ------------------------------
+    // ❌ Absolute Safety Net
+    // ------------------------------
+    catch (e) {
+      print("❌ Session load fatal error: $e");
       clear();
       UserData.clear();
     }
