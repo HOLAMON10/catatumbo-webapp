@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui_web' as ui;
 import 'dart:html';
+
 import 'package:flutter/material.dart';
 import 'models/user.dart';
 import 'navbar.dart';
@@ -18,7 +19,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   final String viewId = "mongo-dashboard-sdk";
   bool _isRegistered = false;
-  bool _hasDashboard = true; // 🌙 the missing-dashboard truth
+  bool _hasDashboard = true;
 
   late String baseUrl;
   late String dashboardId;
@@ -34,7 +35,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     if (dashboardUrl == null || dashboardUrl.isEmpty) {
       _hasDashboard = false;
-      setState(() {}); // 🔑 stop the spinner
+      setState(() {});
       return;
     }
 
@@ -166,89 +167,45 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 🌑 EMPTY STATE
+    // ESTADO SIN DASHBOARD CONFIGURADO
     if (!_hasDashboard) {
-      return const Scaffold(
-        appBar: Navbar(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.dashboard_outlined, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text(
-                "No dashboard connected",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Text(
-                "Please contact your administrator to activate analytics.",
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 🌘 LOADING STATE
-    if (!_isRegistered) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    // 🌕 LIVE DASHBOARD
-    return Scaffold(
-      appBar: const Navbar(),
-      body: Container(
-        color: const Color(0xFFF4F6FA),
-        child: Column(
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1300),
+      return Scaffold(
+        appBar: const Navbar(),
+        body: Container(
+          color: const Color(0xFFF4F5F7),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _styledDropdown(
-                          label: "Status",
-                          value: selectedStatus,
-                          items: const [
-                            "ALL",
-                            "HIRED",
-                            "PROBATION",
-                            "ON_LEAVE",
-                            "SEPARATED",
-                            "TERMINATED"
-                          ],
-                          onChanged: (value) {
-                            setState(() => selectedStatus = value);
-                            applyFilters();
-                            setDashboardPointerEvents(true);
-                          },
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.dashboard_outlined,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        "No hay dashboard conectado",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _styledDropdown(
-                          label: "Province",
-                          value: selectedProvince,
-                          items: const [
-                            "ALL",
-                            "Gauteng",
-                            "Western Cape",
-                            "KwaZulu-Natal",
-                            "Eastern Cape",
-                            "Free State"
-                          ],
-                          onChanged: (value) {
-                            setState(() => selectedProvince = value);
-                            applyFilters();
-                            setDashboardPointerEvents(true);
-                          },
+                      SizedBox(height: 8),
+                      Text(
+                        "Contacta al administrador para configurar la vista de analíticos.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
                         ),
                       ),
                     ],
@@ -256,26 +213,165 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
             ),
+          ),
+        ),
+      );
+    }
 
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1300),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: ClipRRect(
+    // ESTADO CARGANDO SDK
+    if (!_isRegistered) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // DASHBOARD ACTIVO
+    return Scaffold(
+      appBar: const Navbar(),
+      body: Container(
+        color: const Color(0xFFF4F5F7),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                children: [
+                  // HEADER
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "Panel general",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Visualiza métricas clave de empleados y actividad.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // CARD FILTROS
+                  Card(
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      child: Material(
-                        elevation: 12,
-                        color: Colors.white,
-                        child: HtmlElementView(viewType: viewId),
+                    ),
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _styledDropdown(
+                              label: "Estado",
+                              value: selectedStatus,
+                              items: const [
+                                "ALL",
+                                "HIRED",
+                                "PROBATION",
+                                "ON_LEAVE",
+                                "SEPARATED",
+                                "TERMINATED"
+                              ],
+                              onChanged: (value) {
+                                setState(() => selectedStatus = value);
+                                applyFilters();
+                                setDashboardPointerEvents(true);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _styledDropdown(
+                              label: "Provincia",
+                              value: selectedProvince,
+                              items: const [
+                                "ALL",
+                                "Gauteng",
+                                "Western Cape",
+                                "KwaZulu-Natal",
+                                "Eastern Cape",
+                                "Free State"
+                              ],
+                              onChanged: (value) {
+                                setState(() => selectedProvince = value);
+                                applyFilters();
+                                setDashboardPointerEvents(true);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+
+                  // CARD PRINCIPAL CON EL DASHBOARD EMBEBIDO
+                  Expanded(
+                    child: Card(
+                      elevation: 0,
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: const [
+                                Icon(Icons.dashboard_outlined, size: 22),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Dashboard de analíticos",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Spacer(),
+                                Icon(
+                                  Icons.more_horiz,
+                                  color: Colors.grey,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Material(
+                                  elevation: 0,
+                                  color: Colors.white,
+                                  child: HtmlElementView(viewType: viewId),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -297,6 +393,7 @@ class _DashboardPageState extends State<DashboardPage> {
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
+        isDense: true,
       ),
       items: items
           .map(

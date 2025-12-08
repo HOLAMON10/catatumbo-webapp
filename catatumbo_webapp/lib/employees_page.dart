@@ -123,56 +123,119 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Crear empleado'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: firstNameController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                ),
-                TextField(
-                  controller: lastNameController,
-                  decoration: const InputDecoration(labelText: 'Apellido'),
-                ),
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                TextField(
-                  controller: areaController,
-                  decoration: const InputDecoration(labelText: 'Área'),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: status,
-                  items: _statusOptions
-                      .map(
-                        (s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s),
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          insetPadding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Nuevo empleado',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: firstNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (val) => status = val,
-                  decoration:
-                      const InputDecoration(labelText: 'Status', isDense: true),
-                ),
-              ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: lastNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Apellido',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: areaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Área',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: status,
+                    items: _statusOptions
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) => status = val,
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancelar'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 10,
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Guardar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Guardar'),
-            ),
-          ],
         );
       },
     );
@@ -206,56 +269,119 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Editar empleado'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: firstNameController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                ),
-                TextField(
-                  controller: lastNameController,
-                  decoration: const InputDecoration(labelText: 'Apellido'),
-                ),
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                TextField(
-                  controller: areaController,
-                  decoration: const InputDecoration(labelText: 'Área'),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: status,
-                  items: _statusOptions
-                      .map(
-                        (s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s),
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          insetPadding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Editar empleado',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: firstNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (val) => status = val,
-                  decoration:
-                      const InputDecoration(labelText: 'Status', isDense: true),
-                ),
-              ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: lastNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Apellido',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: areaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Área',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: status,
+                    items: _statusOptions
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) => status = val,
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancelar'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 10,
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Guardar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Guardar'),
-            ),
-          ],
         );
       },
     );
@@ -281,21 +407,58 @@ class _EmployeesPageState extends State<EmployeesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Dar de baja'),
-          content: Text(
-            '¿Deseas dar de baja a ${employee.firstName} ${employee.lastName}?',
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Dar de baja',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '¿Deseas dar de baja a ${employee.firstName} ${employee.lastName}?',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancelar'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Dar de baja'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Aceptar'),
-            ),
-          ],
         );
       },
     );
@@ -348,168 +511,331 @@ class _EmployeesPageState extends State<EmployeesPage> {
       await showDialog<void>(
         context: context,
         builder: (ctx) {
-          return AlertDialog(
-            title: const Text('Historial'),
-            content: SizedBox(
-              width: 400,
-              height: 300,
-              child: ListView.builder(
-                itemCount: raw.length,
-                itemBuilder: (context, index) {
-                  final item = raw[index] as Map<String, dynamic>;
-                  final ts = item['modifiedAt'] ?? item['date'];
-                  final by = item['modifiedBy'] is Map
-                      ? (item['modifiedBy']['email'] ??
-                          item['modifiedBy']['username'] ??
-                          '')
-                      : (item['modifiedBy']?.toString() ?? '');
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            insetPadding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Historial de cambios',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 320,
+                      width: double.infinity,
+                      child: raw.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Sin cambios registrados',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: raw.length,
+                              itemBuilder: (context, index) {
+                                final item =
+                                    raw[index] as Map<String, dynamic>;
+                                final ts = item['modifiedAt'] ?? item['date'];
+                                final by = item['modifiedBy'] is Map
+                                    ? (item['modifiedBy']['email'] ??
+                                        item['modifiedBy']['username'] ??
+                                        '')
+                                    : (item['modifiedBy']?.toString() ?? '');
 
-                  // 🔹 CAMBIO AQUÍ: formatear la fecha en vez de mostrar milisegundos
-                  String formattedDate = '';
-                  if (ts != null) {
-                    int? millis;
-                    if (ts is num) {
-                      millis = ts.toInt();
-                    } else {
-                      millis = int.tryParse(ts.toString());
-                    }
-                    if (millis != null) {
-                      final date =
-                          DateTime.fromMillisecondsSinceEpoch(millis);
-                      final twoDigits = (int n) =>
-                          n.toString().padLeft(2, '0');
-                      formattedDate =
-                          '${twoDigits(date.day)}/${twoDigits(date.month)}/${date.year} '
-                          '${twoDigits(date.hour)}:${twoDigits(date.minute)}';
-                    } else {
-                      formattedDate = ts.toString();
-                    }
-                  }
+                                String formattedDate = '';
+                                if (ts != null) {
+                                  int? millis;
+                                  if (ts is num) {
+                                    millis = ts.toInt();
+                                  } else {
+                                    millis = int.tryParse(ts.toString());
+                                  }
+                                  if (millis != null) {
+                                    final date =
+                                        DateTime.fromMillisecondsSinceEpoch(
+                                            millis);
+                                    String two(int n) =>
+                                        n.toString().padLeft(2, '0');
+                                    formattedDate =
+                                        '${two(date.day)}/${two(date.month)}/${date.year} '
+                                        '${two(date.hour)}:${two(date.minute)}';
+                                  } else {
+                                    formattedDate = ts.toString();
+                                  }
+                                }
 
-                  return ListTile(
-                    dense: true,
-                    title: Text(by),
-                    subtitle: Text(formattedDate),
-                  );
-                },
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey.shade200,
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 18,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    by.isEmpty ? 'Sistema' : by,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    formattedDate,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Cerrar'),
+                      ),
+                    )
+                  ],
+                ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cerrar'),
-              ),
-            ],
           );
         },
       );
     } catch (_) {}
   }
 
-  Widget _buildFilters() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            decoration: const InputDecoration(
-              labelText: 'Área',
-              isDense: true,
-            ),
-            onChanged: (val) {
-              _filterArea = val.trim().isEmpty ? null : val.trim();
-            },
-            onSubmitted: (_) => _loadEmployees(),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            value: _filterStatus,
-            items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('Todos'),
+  Widget _buildFiltersCard() {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  labelText: 'Área',
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.apartment_outlined, size: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                ),
+                onChanged: (val) {
+                  _filterArea = val.trim().isEmpty ? null : val.trim();
+                },
+                onSubmitted: (_) => _loadEmployees(),
               ),
-              ..._statusOptions.map(
-                (s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(s),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 180,
+              child: DropdownButtonFormField<String>(
+                value: _filterStatus,
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('Todos'),
+                  ),
+                  ..._statusOptions.map(
+                    (s) => DropdownMenuItem(
+                      value: s,
+                      child: Text(s),
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _filterStatus = val;
+                  });
+                  _loadEmployees();
+                },
+                decoration: InputDecoration(
+                  labelText: 'Status',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 ),
               ),
-            ],
-            onChanged: (val) {
-              setState(() {
-                _filterStatus = val;
-              });
-              _loadEmployees();
-            },
-            decoration: const InputDecoration(
-              labelText: 'Status',
-              isDense: true,
             ),
-          ),
+            const SizedBox(width: 12),
+            SizedBox(
+              height: 40,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                onPressed: _loadEmployees,
+                icon: const Icon(Icons.filter_list, size: 18),
+                label: const Text('Aplicar'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        ElevatedButton(
-          onPressed: _loadEmployees,
-          child: const Text('Filtrar'),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildTable() {
+  Widget _buildTableCard() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Expanded(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (_employees.isEmpty) {
-      return const Center(child: Text('Sin empleados'));
+      return Expanded(
+        child: Card(
+          elevation: 0,
+          color: Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: const Center(
+            child: Text(
+              'Sin empleados',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ),
+      );
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Nombre')),
-          DataColumn(label: Text('Email')),
-          DataColumn(label: Text('Área')),
-          DataColumn(label: Text('Status')),
-          DataColumn(label: Text('Acciones')),
-        ],
-        rows: _employees.map((e) {
-          final fullName = '${e.firstName} ${e.lastName}';
-          return DataRow(
-            cells: [
-              DataCell(Text(fullName)),
-              DataCell(Text(e.email)),
-              DataCell(Text(e.area ?? '')),
-              DataCell(Text(e.status ?? (e.isActive ? 'active' : 'inactive'))),
-              DataCell(
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Editar',
-                      icon: const Icon(Icons.edit),
-                      onPressed: () => _editEmployee(e),
+    return Expanded(
+      child: Card(
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowHeight: 40,
+              dataRowHeight: 46,
+              headingTextStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+              columns: const [
+                DataColumn(label: Text('Nombre')),
+                DataColumn(label: Text('Email')),
+                DataColumn(label: Text('Área')),
+                DataColumn(label: Text('Status')),
+                DataColumn(label: Text('Acciones')),
+              ],
+              rows: _employees.map((e) {
+                final fullName = '${e.firstName} ${e.lastName}';
+                final statusText =
+                    e.status ?? (e.isActive ? 'active' : 'inactive');
+                final isInactive = statusText == 'inactive';
+
+                return DataRow(
+                  cells: [
+                    DataCell(Text(fullName)),
+                    DataCell(Text(e.email)),
+                    DataCell(Text(e.area ?? '')),
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: isInactive
+                              ? Colors.red.shade50
+                              : Colors.green.shade50,
+                        ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isInactive
+                                ? Colors.red.shade700
+                                : Colors.green.shade700,
+                          ),
+                        ),
+                      ),
                     ),
-                    IconButton(
-                      tooltip: 'Historial',
-                      icon: const Icon(Icons.history),
-                      onPressed: () => _showHistory(e),
-                    ),
-                    IconButton(
-                      tooltip: 'Dar de baja',
-                      icon: const Icon(Icons.block),
-                      onPressed: e.isActive ? () => _deactivateEmployee(e) : null,
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Editar',
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              size: 20,
+                            ),
+                            onPressed: () => _editEmployee(e),
+                          ),
+                          IconButton(
+                            tooltip: 'Historial',
+                            icon: const Icon(
+                              Icons.history,
+                              size: 20,
+                            ),
+                            onPressed: () => _showHistory(e),
+                          ),
+                          IconButton(
+                            tooltip: 'Dar de baja',
+                            icon: Icon(
+                              Icons.block_outlined,
+                              size: 20,
+                              color:
+                                  e.isActive ? Colors.red.shade400 : Colors.grey,
+                            ),
+                            onPressed: e.isActive
+                                ? () => _deactivateEmployee(e)
+                                : null,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
-              ),
-            ],
-          );
-        }).toList(),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -517,45 +843,107 @@ class _EmployeesPageState extends State<EmployeesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight),
-        child: Navbar(),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Empleados',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+      appBar: const Navbar(),
+      body: Container(
+        color: const Color(0xFFF4F5F7),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Empleados',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Registra, edita, filtra y exporta el catálogo de empleados.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        height: 40,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                          ),
+                          onPressed: _exportCsv,
+                          icon: const Icon(Icons.table_view_outlined, size: 18),
+                          label: const Text('CSV'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 40,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                          ),
+                          onPressed: _exportPdf,
+                          icon: const Icon(Icons.picture_as_pdf_outlined,
+                              size: 18),
+                          label: const Text('PDF'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 40,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 8,
+                            ),
+                          ),
+                          onPressed: _createEmployee,
+                          icon: const Icon(Icons.add, size: 20),
+                          label: const Text('Nuevo'),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const Spacer(),
-                ElevatedButton(
-                  onPressed: _exportCsv,
-                  child: const Text('Exportar CSV'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _exportPdf,
-                  child: const Text('Exportar PDF'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _createEmployee,
-                  child: const Text('Nuevo'),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  _buildFiltersCard(),
+                  const SizedBox(height: 16),
+                  _buildTableCard(),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildFilters(),
-            const SizedBox(height: 12),
-            Expanded(child: _buildTable()),
-          ],
+          ),
         ),
       ),
     );
