@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'navbar.dart';
+import 'models/user.dart';
 
 class MeetingRoomReservationsPage extends StatefulWidget {
   const MeetingRoomReservationsPage({super.key});
@@ -24,7 +25,11 @@ class _MeetingRoomReservationsPageState
     loadData();
   }
 
+  // --------------------------------------------------------------------------
+  // LOAD ALL DATA
+  // --------------------------------------------------------------------------
   Future<void> loadData() async {
+    setState(() => loading = true);
     await Future.wait([
       loadReservations(),
       loadMeetingRooms(),
@@ -32,15 +37,11 @@ class _MeetingRoomReservationsPageState
     setState(() => loading = false);
   }
 
-  // --------------------------------------------------------------------------
-  // LOAD MEETING ROOMS
-  // --------------------------------------------------------------------------
   Future<void> loadMeetingRooms() async {
     final res = await Api.send(
       'POST',
       '/meetingrooms/search',
       payload: {"isActive": true},
-
     );
 
     final body = jsonDecode(res.body);
@@ -50,14 +51,11 @@ class _MeetingRoomReservationsPageState
         .toList();
   }
 
-  // --------------------------------------------------------------------------
-  // LOAD RESERVATIONS
-  // --------------------------------------------------------------------------
   Future<void> loadReservations() async {
     final res = await Api.send(
       'POST',
       '/meetingroomreservations/search',
-      payload: {"populateAll":true},
+      payload: {"populateAll": true},
     );
 
     final body = jsonDecode(res.body);
@@ -68,50 +66,7 @@ class _MeetingRoomReservationsPageState
   }
 
   // --------------------------------------------------------------------------
-  // VALIDATION HELPERS (MATCHES MONGODB FORMAT EXACTLY)
-  // --------------------------------------------------------------------------
-  int _weekdayFromDate(String date) {
-    return DateTime.parse(date).weekday; // 1 = Monday ... 7 = Sunday
-  }
-
-  bool _timeWithin(String value, String start, String end) {
-    return value.compareTo(start) >= 0 &&
-        value.compareTo(end) <= 0;
-  }
-
-  bool _isReservationValid({
-    required Map<String, dynamic> room,
-    required String date,
-    required String start,
-    required String end,
-  }) {
-    if (date.isEmpty || start.isEmpty || end.isEmpty) return false;
-
-    final weekday = _weekdayFromDate(date);
-    final List schedule = room['schedule'] ?? [];
-
-    final matchingDay = schedule.cast<Map<String, dynamic>>().firstWhere(
-          (s) => s['day'] == weekday,
-          orElse: () => {},
-        );
-
-    if (matchingDay.isEmpty) return false;
-
-    return _timeWithin(
-              start,
-              matchingDay['startingHour'],
-              matchingDay['endingHour'],
-            ) &&
-        _timeWithin(
-              end,
-              matchingDay['startingHour'],
-              matchingDay['endingHour'],
-            ) &&
-        start.compareTo(end) < 0;
-  }
-
-  // --------------------------------------------------------------------------
-  // OPEN CREATE / EDIT MODAL
+  // CREATE / EDIT MODAL
   // --------------------------------------------------------------------------
   void openReservationModal({Map<String, dynamic>? reservation}) {
     final bool isEdit = reservation != null;
@@ -120,12 +75,12 @@ class _MeetingRoomReservationsPageState
         reservation?['meetingRoom'];
     String? selectedRoomId = selectedRoom?['_id'];
 
-    final dateCtrl = TextEditingController(
-        text: reservation?['reservationDate'] ?? '');
-    final startCtrl = TextEditingController(
-        text: reservation?['reservationStartingHour'] ?? '');
-    final endCtrl = TextEditingController(
-        text: reservation?['reservationEndingHour'] ?? '');
+    final dateCtrl =
+        TextEditingController(text: reservation?['reservationDate'] ?? '');
+    final startCtrl =
+        TextEditingController(text: reservation?['reservationStartingHour'] ?? '');
+    final endCtrl =
+        TextEditingController(text: reservation?['reservationEndingHour'] ?? '');
     final descriptionCtrl =
         TextEditingController(text: reservation?['description'] ?? '');
 
@@ -133,20 +88,36 @@ class _MeetingRoomReservationsPageState
       context: context,
       builder: (_) {
         return StatefulBuilder(builder: (context, setSB) {
-          return AlertDialog(
-            title: Text(
-              isEdit ? "Edit Reservation" : "Reserve Meeting Room",
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
             ),
-            content: SizedBox(
-              width: 520,
-              child: SingleChildScrollView(
+            insetPadding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // ---------------- ROOM ----------------
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        isEdit ? 'Editar reserva' : 'Nueva reserva',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
                     DropdownButtonFormField<String>(
                       value: selectedRoomId,
                       decoration: const InputDecoration(
-                        labelText: "Meeting Room",
+                        labelText: "Sala",
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
                       items: meetingRooms.map((r) {
                         return DropdownMenuItem<String>(
@@ -155,21 +126,23 @@ class _MeetingRoomReservationsPageState
                         );
                       }).toList(),
                       onChanged: (v) {
-                        final room = meetingRooms
-                            .firstWhere((r) => r['_id'] == v);
+                        final room =
+                            meetingRooms.firstWhere((r) => r['_id'] == v);
                         setSB(() {
                           selectedRoomId = v;
                           selectedRoom = room;
                         });
                       },
                     ),
+                    const SizedBox(height: 12),
 
-                    // ---------------- DATE ----------------
                     TextField(
                       controller: dateCtrl,
                       readOnly: true,
                       decoration: const InputDecoration(
-                        labelText: "Reservation Date",
+                        labelText: "Fecha",
+                        border: OutlineInputBorder(),
+                        isDense: true,
                         suffixIcon: Icon(Icons.calendar_today),
                       ),
                       onTap: () async {
@@ -180,15 +153,14 @@ class _MeetingRoomReservationsPageState
                           lastDate:
                               DateTime.now().add(const Duration(days: 365)),
                         );
-
                         if (picked != null) {
                           dateCtrl.text =
                               picked.toIso8601String().substring(0, 10);
                         }
                       },
                     ),
+                    const SizedBox(height: 12),
 
-                    // ---------------- TIME ----------------
                     Row(
                       children: [
                         Expanded(
@@ -196,7 +168,9 @@ class _MeetingRoomReservationsPageState
                             controller: startCtrl,
                             readOnly: true,
                             decoration: const InputDecoration(
-                              labelText: "Start Time",
+                              labelText: "Hora inicio",
+                              border: OutlineInputBorder(),
+                              isDense: true,
                               suffixIcon: Icon(Icons.access_time),
                             ),
                             onTap: () async {
@@ -212,13 +186,9 @@ class _MeetingRoomReservationsPageState
                                   );
                                 },
                               );
-
                               if (picked != null) {
-                                final h =
-                                    picked.hour.toString().padLeft(2, '0');
-                                final m =
-                                    picked.minute.toString().padLeft(2, '0');
-                                startCtrl.text = "$h:$m"; // HH:mm
+                                startCtrl.text =
+                                    "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
                               }
                             },
                           ),
@@ -229,7 +199,9 @@ class _MeetingRoomReservationsPageState
                             controller: endCtrl,
                             readOnly: true,
                             decoration: const InputDecoration(
-                              labelText: "End Time",
+                              labelText: "Hora fin",
+                              border: OutlineInputBorder(),
+                              isDense: true,
                               suffixIcon: Icon(Icons.access_time),
                             ),
                             onTap: () async {
@@ -245,113 +217,89 @@ class _MeetingRoomReservationsPageState
                                   );
                                 },
                               );
-
                               if (picked != null) {
-                                final h =
-                                    picked.hour.toString().padLeft(2, '0');
-                                final m =
-                                    picked.minute.toString().padLeft(2, '0');
-                                endCtrl.text = "$h:$m"; // HH:mm
+                                endCtrl.text =
+                                    "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
                               }
                             },
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
 
-                    // ---------------- DESCRIPTION ----------------
                     TextField(
                       controller: descriptionCtrl,
                       maxLines: 3,
                       decoration: const InputDecoration(
-                        labelText: "Description",
+                        labelText: "Descripción",
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
                     ),
 
-                    // ---------------- AVAILABILITY ----------------
-                    if (selectedRoom != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Room availability:\n" +
-                                (selectedRoom!['schedule'] as List)
-                                    .map((s) =>
-                                        "Day ${s['day']} ${s['startingHour']}–${s['endingHour']}")
-                                    .join("\n"),
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
-                          ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancelar'),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
+                          ),
+                          onPressed: () async {
+                            if (selectedRoom == null) return;
+
+                            final payload = {
+                              "meetingRoom": selectedRoomId,
+                              "reservationDate": dateCtrl.text,
+                              "reservationStartingHour": startCtrl.text,
+                              "reservationEndingHour": endCtrl.text,
+                              "description": descriptionCtrl.text,
+                            };
+
+                            if (isEdit) {
+                              payload["_id"] = reservation!["_id"];
+                              await Api.send(
+                                'PUT',
+                                '/meetingroomreservations',
+                                payload: {"payload": payload},
+                              );
+                            } else {
+                              await Api.send(
+                                'POST',
+                                '/meetingroomreservations',
+                                payload: {
+                                  "payload": payload,
+                                  "email": UserData.email,
+                                },
+                              );
+                            }
+
+                            Navigator.pop(context);
+                            await loadReservations();
+                            setState(() {});
+                          },
+                          child: Text(isEdit ? 'Guardar' : 'Reservar'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (selectedRoom == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Select a meeting room"),
-                      ),
-                    );
-                    return;
-                  }
-
-                  final valid = _isReservationValid(
-                    room: selectedRoom!,
-                    date: dateCtrl.text,
-                    start: startCtrl.text,
-                    end: endCtrl.text,
-                  );
-
-                  if (!valid) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Reservation is outside the room's allowed schedule.",
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-
-                  final payload = {
-                    "meetingRoom": selectedRoomId,
-                    "reservationDate": dateCtrl.text,
-                    "reservationStartingHour": startCtrl.text,
-                    "reservationEndingHour": endCtrl.text,
-                    "description": descriptionCtrl.text,
-                  };
-
-                  if (isEdit) {
-                    payload["_id"] = reservation!["_id"];
-                    await Api.send(
-                      'PUT',
-                      '/meetingroomreservations',
-                      payload: payload,
-                    );
-                  } else {
-                    await Api.send(
-                      'POST',
-                      '/meetingroomreservations',
-                      payload: payload,
-                    );
-                  }
-
-                  Navigator.pop(context);
-                  loadReservations();
-                },
-                child: Text(isEdit ? "Save" : "Reserve"),
-              ),
-            ],
           );
         });
       },
@@ -359,75 +307,179 @@ class _MeetingRoomReservationsPageState
   }
 
   // --------------------------------------------------------------------------
-  // BUILD UI
+  // UI
   // --------------------------------------------------------------------------
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const Navbar(),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: const Navbar(),
+    body: Container(
+      color: const Color(0xFFF4F5F7),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
                     children: [
-                      const Text(
-                        "Meeting Room Reservations",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => openReservationModal(),
-                        child: const Text("New Reservation"),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text("Room")),
-                          DataColumn(label: Text("Date")),
-                          DataColumn(label: Text("Start")),
-                          DataColumn(label: Text("End")),
-                          DataColumn(label: Text("Description")),
-                          DataColumn(label: Text("Actions")),
-                        ],
-                        rows: reservations.map((r) {
-                          final room = r['meetingRoom'];
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(
-                                  room != null ? room['name'] : "—")),
-                              DataCell(Text(r['reservationDate'] ?? '')),
-                              DataCell(Text(
-                                  r['reservationStartingHour'] ?? '')),
-                              DataCell(Text(
-                                  r['reservationEndingHour'] ?? '')),
-                              DataCell(Text(r['description'] ?? '')),
-                              DataCell(
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () =>
-                                      openReservationModal(reservation: r),
+                      // HEADER
+                      Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Reservas de salas',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Consulta y administra las reservas de salas de juntas.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ],
-                          );
-                        }).toList(),
+                          ),
+                          const Spacer(),
+                          SizedBox(
+                            height: 40,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 8,
+                                ),
+                              ),
+                              onPressed: () => openReservationModal(),
+                              icon: const Icon(Icons.add, size: 20),
+                              label: const Text('Nueva'),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+
+                      const SizedBox(height: 16),
+
+                      // FILTERS (MATCH USERS PAGE STYLE)
+                      Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    labelText: 'Buscar',
+                                    isDense: true,
+                                    prefixIcon:
+                                        const Icon(Icons.search, size: 18),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              FilterChip(
+                                label: const Text("Hoy"),
+                                selected: false,
+                                onSelected: (_) {},
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text("Próximas"),
+                                selected: false,
+                                onSelected: (_) {},
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // TABLE (MATCH USERS PAGE STYLE)
+                      Expanded(
+                        child: Card(
+                          elevation: 0,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                headingRowHeight: 40,
+                                dataRowHeight: 46,
+                                headingTextStyle: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                                columns: const [
+                                  DataColumn(label: Text("Sala")),
+                                  DataColumn(label: Text("Fecha")),
+                                  DataColumn(label: Text("Inicio")),
+                                  DataColumn(label: Text("Fin")),
+                                  DataColumn(label: Text("Descripción")),
+                                  DataColumn(label: Text("Acciones")),
+                                ],
+                                rows: reservations.map((r) {
+                                  final room = r['meetingRoom'];
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(Text(room?['name'] ?? '—')),
+                                      DataCell(
+                                          Text(r['reservationDate'] ?? '')),
+                                      DataCell(Text(
+                                          r['reservationStartingHour'] ?? '')),
+                                      DataCell(Text(
+                                          r['reservationEndingHour'] ?? '')),
+                                      DataCell(Text(r['description'] ?? '')),
+                                      DataCell(
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            size: 20,
+                                          ),
+                                          onPressed: () =>
+                                              openReservationModal(
+                                                  reservation: r),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-    );
-  }
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 }

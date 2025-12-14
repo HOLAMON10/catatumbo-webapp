@@ -257,130 +257,219 @@ class _MeetingRoomsPageState extends State<MeetingRoomsPage> {
   // --------------------------------------------------------------------------
   // BUILD UI
   // --------------------------------------------------------------------------
-  @override
-  Widget build(BuildContext context) {
-    final displayRooms = filteredRooms;
+@override
+Widget build(BuildContext context) {
+  final displayRooms = filteredRooms;
 
-    return Scaffold(
-      appBar: const Navbar(),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  return Scaffold(
+    appBar: const Navbar(),
+    body: Container(
+      color: const Color(0xFFF4F5F7),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
                     children: [
-                      const Text(
-                        "Meeting Rooms",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
+                      // HEADER
+                      Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Meeting Rooms',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Manage available meeting rooms.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          SizedBox(
+                            height: 40,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 8,
+                                ),
+                              ),
+                              onPressed: () => openRoomModal(),
+                              icon: const Icon(Icons.add, size: 20),
+                              label: const Text('Create'),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // FILTERS (NOW MATCH USERS)
+                      Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: searchCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: 'Search',
+                                    isDense: true,
+                                    prefixIcon:
+                                        const Icon(Icons.search, size: 18),
+                                    border: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12),
+                                    ),
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              FilterChip(
+                                label: const Text('Active'),
+                                selected: showActiveOnly,
+                                onSelected: (v) {
+                                  setState(() {
+                                    showActiveOnly = v;
+                                    if (v) showInactiveOnly = false;
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text('Inactive'),
+                                selected: showInactiveOnly,
+                                onSelected: (v) {
+                                  setState(() {
+                                    showInactiveOnly = v;
+                                    if (v) showActiveOnly = false;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: () => openRoomModal(),
-                        child: const Text("Create Room"),
-                      ),
-                    ],
-                  ),
 
-                  const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
-                  Row(
-                    children: [
+                      // TABLE (NOW MATCH USERS)
                       Expanded(
-                        child: TextField(
-                          controller: searchCtrl,
-                          decoration: InputDecoration(
-                            labelText: "Search rooms...",
-                            prefixIcon: const Icon(Icons.search),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        child: Card(
+                          elevation: 0,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                headingRowHeight: 40,
+                                dataRowHeight: 46,
+                                headingTextStyle: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                                columns: const [
+                                  DataColumn(label: Text('Name')),
+                                  DataColumn(label: Text('Location')),
+                                  DataColumn(label: Text('Chairs')),
+                                  DataColumn(label: Text('Status')),
+                                  DataColumn(label: Text('Actions')),
+                                ],
+                                rows: displayRooms.map((r) {
+                                  final active = r['isActive'] == true;
+
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(Text(r['name'] ?? '')),
+                                      DataCell(Text(r['location'] ?? '')),
+                                      DataCell(
+                                          Text('${r['chairs'] ?? 0}')),
+                                      DataCell(
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                            color: active
+                                                ? Colors.green.shade50
+                                                : Colors.red.shade50,
+                                          ),
+                                          child: Text(
+                                            active
+                                                ? 'Active'
+                                                : 'Inactive',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: active
+                                                  ? Colors.green.shade700
+                                                  : Colors.red.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            size: 20,
+                                          ),
+                                          onPressed: () =>
+                                              openRoomModal(room: r),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      FilterChip(
-                        label: const Text("Active"),
-                        selected: showActiveOnly,
-                        onSelected: (v) {
-                          setState(() {
-                            showActiveOnly = v;
-                            if (v) showInactiveOnly = false;
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text("Inactive"),
-                        selected: showInactiveOnly,
-                        onSelected: (v) {
-                          setState(() {
-                            showInactiveOnly = v;
-                            if (v) showActiveOnly = false;
-                          });
-                        },
-                      ),
                     ],
                   ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
-                  const SizedBox(height: 16),
-
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text("Name")),
-                          DataColumn(label: Text("Location")),
-                          DataColumn(label: Text("Chairs")),
-                          DataColumn(label: Text("Active")),
-                          DataColumn(label: Text("Actions")),
-                        ],
-                        rows: displayRooms.map((r) {
-                          final active = r['isActive'] == true;
-
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(r['name'] ?? '')),
-                              DataCell(Text(r['location'] ?? '')),
-                              DataCell(Text("${r['chairs'] ?? 0}")),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    Icon(
-                                      active
-                                          ? Icons.check_circle
-                                          : Icons.cancel,
-                                      color: active
-                                          ? Colors.green
-                                          : Colors.red,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(active ? "Yes" : "No"),
-                                  ],
-                                ),
-                              ),
-                              DataCell(
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () =>
-                                      openRoomModal(room: r),
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
 }

@@ -20,13 +20,11 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
   bool loadingProfiles = true;
   bool loadingMenus = true;
 
-  // Search/Filter state
   final TextEditingController searchCtrl = TextEditingController();
   String searchQuery = '';
   bool showActiveOnly = false;
   bool showInactiveOnly = false;
 
-  // Permission helper
   bool hasPermission(String perm) {
     return UserData.allowedPermissions?.contains(perm) ?? false;
   }
@@ -44,9 +42,7 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
     }
 
     searchCtrl.addListener(() {
-      setState(() {
-        searchQuery = searchCtrl.text.toLowerCase();
-      });
+      setState(() => searchQuery = searchCtrl.text.toLowerCase());
     });
   }
 
@@ -57,92 +53,73 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
   }
 
   // --------------------------------------------------------------------------
-  // FILTER PROFILES
+  // FILTER
   // --------------------------------------------------------------------------
   List<Map<String, dynamic>> get filteredProfiles {
     return profiles.where((p) {
-      // Filter by search query
       if (searchQuery.isNotEmpty) {
         final name = (p['name'] ?? '').toString().toLowerCase();
-        final description = (p['description'] ?? '').toString().toLowerCase();
-        final refCode = (p['referenceCode'] ?? '').toString().toLowerCase();
-
+        final desc = (p['description'] ?? '').toString().toLowerCase();
+        final ref = (p['referenceCode'] ?? '').toString().toLowerCase();
         if (!name.contains(searchQuery) &&
-            !description.contains(searchQuery) &&
-            !refCode.contains(searchQuery)) {
+            !desc.contains(searchQuery) &&
+            !ref.contains(searchQuery)) {
           return false;
         }
       }
 
-      // Filter by active status
-      final isActive = p['isActive'] == true;
-      if (showActiveOnly && !isActive) return false;
-      if (showInactiveOnly && isActive) return false;
+      final active = p['isActive'] == true;
+      if (showActiveOnly && !active) return false;
+      if (showInactiveOnly && active) return false;
 
       return true;
     }).toList();
   }
 
   // --------------------------------------------------------------------------
-  // LOAD ACCESS PROFILES
+  // LOAD
   // --------------------------------------------------------------------------
   Future<void> loadProfiles() async {
     try {
       final res =
           await Api.send('POST', '/accessprofiles/search', payload: {});
       final body = jsonDecode(res.body);
-
-      final detail = body["detail"];
-      List<Map<String, dynamic>> parsed = [];
-
-      if (detail is List) {
-        parsed = detail
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-      }
+      final List list = body['detail'] ?? [];
 
       setState(() {
-        profiles = parsed;
+        profiles = list.map((e) => Map<String, dynamic>.from(e)).toList();
         loadingProfiles = false;
       });
-    } catch (e) {
-      print("Error loading profiles: $e");
-      profiles = [];
+    } catch (_) {
       loadingProfiles = false;
     }
   }
 
-  // --------------------------------------------------------------------------
-  // LOAD MENU OPTIONS
-  // --------------------------------------------------------------------------
   Future<void> loadMenuOptions() async {
     try {
       final res = await Api.send(
         'GET',
         '/catalogs/${CatalogName.menuoptions.value}',
       );
-
       final body = jsonDecode(res.body);
-      final List<dynamic> detailList = body['detail'] ?? [];
+      final List list = body['detail'] ?? [];
 
       setState(() {
-        menuOptions =
-            detailList.map((e) => Map<String, dynamic>.from(e)).toList();
+        menuOptions = list.map((e) => Map<String, dynamic>.from(e)).toList();
         loadingMenus = false;
       });
-    } catch (e) {
-      print("Error loading menu options: $e");
+    } catch (_) {
       loadingMenus = false;
     }
   }
 
   // --------------------------------------------------------------------------
-  // DELETE (INACTIVATE)
+  // DELETE
   // --------------------------------------------------------------------------
   Future<void> deleteProfile(Map<String, dynamic> profile) async {
     if (!hasPermission("userCanManageAccessLevels")) return;
 
-    final shouldDeactivate = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Confirm Inactivation"),
@@ -155,6 +132,10 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Inactivate"),
           ),
@@ -162,38 +143,21 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
       ),
     );
 
-    if (shouldDeactivate != true) return;
+    if (confirmed != true) return;
 
-    try {
-      final payload = {
-        ...profile,
-        "isActive": false,
-      };
-
-      await Api.send(
-        'PUT',
-        '/accessprofiles',
-        payload: payload,
-      );
-    } catch (e) {
-      print("Error deactivating profile: $e");
-    }
+    await Api.send('PUT', '/accessprofiles', payload: {
+      ...profile,
+      "isActive": false,
+    });
 
     loadProfiles();
   }
 
   // --------------------------------------------------------------------------
-  // OPEN MODAL
+  // MODAL (unchanged)
   // --------------------------------------------------------------------------
   void openProfileModal({Map<String, dynamic>? profile}) {
-    if (!hasPermission("userCanManageAccessLevels")) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("You do not have permission to manage access levels."),
-        ),
-      );
-      return;
-    }
+    if (!hasPermission("userCanManageAccessLevels")) return;
 
     final nameCtrl = TextEditingController(text: profile?["name"] ?? "");
     final descCtrl =
@@ -202,105 +166,97 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
         TextEditingController(text: profile?["referenceCode"] ?? const Uuid().v4());
 
     bool isActive = profile?["isActive"] ?? true;
-
-    List<String> selectedMenuOptions = [];
-
-    if (profile != null && profile["menuOptions"] is List) {
-      selectedMenuOptions =
-          (profile["menuOptions"] as List).map((e) => e.toString()).toList();
-    }
+    List<String> selectedMenuOptions =
+        (profile?["menuOptions"] ?? []).map<String>((e) => e.toString()).toList();
 
     showDialog(
       context: context,
-      builder: (_) {
-        return Dialog(
-          child: SizedBox(
-            width: 550,
-            child: DefaultTabController(
-              length: 2,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        insetPadding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: DefaultTabController(
+            length: 2,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Access Profile",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   const TabBar(
                     tabs: [
-                      Tab(text: "Access Profile"),
+                      Tab(text: "Info"),
                       Tab(text: "Menu Options"),
                     ],
                   ),
-
                   SizedBox(
-                    height: 430,
+                    height: 360,
                     child: TabBarView(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: ListView(
-                            children: [
-                              TextField(
-                                controller: nameCtrl,
-                                decoration: const InputDecoration(
-                                    labelText: "Name"),
+                        ListView(
+                          children: [
+                            TextField(
+                              controller: nameCtrl,
+                              decoration: const InputDecoration(
+                                labelText: "Name",
+                                border: OutlineInputBorder(),
+                                isDense: true,
                               ),
-                              TextField(
-                                controller: descCtrl,
-                                decoration: const InputDecoration(
-                                    labelText: "Description"),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: descCtrl,
+                              decoration: const InputDecoration(
+                                labelText: "Description",
+                                border: OutlineInputBorder(),
+                                isDense: true,
                               ),
-                              TextField(
-                                controller: refCtrl,
-                                decoration: const InputDecoration(
-                                    labelText: "Reference Code"),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: refCtrl,
+                              decoration: const InputDecoration(
+                                labelText: "Reference Code",
+                                border: OutlineInputBorder(),
+                                isDense: true,
                               ),
-
-                              StatefulBuilder(
-                                builder: (context, modalSetState) {
-                                  return SwitchListTile(
-                                    title: const Text("Active"),
-                                    value: isActive,
-                                    onChanged: (v) {
-                                      modalSetState(() => isActive = v);
-                                    },
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                            ),
+                            SwitchListTile(
+                              title: const Text("Active"),
+                              value: isActive,
+                              onChanged: (v) =>
+                                  setState(() => isActive = v),
+                            ),
+                          ],
                         ),
-
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: StatefulBuilder(
-                            builder: (context, modalSetState) {
-                              return ListView(
-                                children: menuOptions.map((opt) {
-                                  final id = opt["_id"].toString();
-                                  final name = opt["name"].toString();
-
-                                  final checked =
-                                      selectedMenuOptions.contains(id);
-
-                                  return CheckboxListTile(
-                                    title: Text(name),
-                                    value: checked,
-                                    onChanged: (v) {
-                                      modalSetState(() {
-                                        if (v == true) {
-                                          selectedMenuOptions.add(id);
-                                        } else {
-                                          selectedMenuOptions.remove(id);
-                                        }
-                                      });
-                                    },
-                                  );
-                                }).toList(),
-                              );
-                            },
-                          ),
+                        ListView(
+                          children: menuOptions.map((opt) {
+                            final id = opt["_id"].toString();
+                            return CheckboxListTile(
+                              title: Text(opt["name"].toString()),
+                              value: selectedMenuOptions.contains(id),
+                              onChanged: (v) {
+                                setState(() {
+                                  v == true
+                                      ? selectedMenuOptions.add(id)
+                                      : selectedMenuOptions.remove(id);
+                                });
+                              },
+                            );
+                          }).toList(),
                         ),
                       ],
                     ),
                   ),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -308,7 +264,12 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                         onPressed: () => Navigator.pop(context),
                         child: const Text("Cancel"),
                       ),
+                      const SizedBox(width: 8),
                       ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                        ),
                         onPressed: () async {
                           final payload = {
                             "name": nameCtrl.text,
@@ -319,274 +280,216 @@ class _AccessProfilesPageState extends State<AccessProfilesPage> {
                                 selectedMenuOptions.toSet().toList(),
                           };
 
-                          try {
-                            final res = await Api.send(
-                              profile == null ? 'POST' : 'PUT',
-                              '/accessprofiles',
-                              payload: profile == null
-                                  ? payload
-                                  : {...payload, "_id": profile["_id"]},
-                            );
+                          await Api.send(
+                            profile == null ? 'POST' : 'PUT',
+                            '/accessprofiles',
+                            payload: profile == null
+                                ? payload
+                                : {...payload, "_id": profile["_id"]},
+                          );
 
-                            final body = jsonDecode(res.body);
-
-                            if (body["code"] != "success") {
-                              showDialog(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  title:
-                                      const Text("Validation Error"),
-                                  content: Text(body["detail"]
-                                          ?.toString() ??
-                                      "Unknown validation issue"),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context),
-                                      child: const Text("OK"),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              return;
-                            }
-
-                            Navigator.pop(context);
-                            loadProfiles();
-                          } catch (e) {
-                            showDialog(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: const Text("Unexpected Error"),
-                                content: Text(e.toString()),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context),
-                                    child: const Text("OK"),
-                                  )
-                                ],
-                              ),
-                            );
-                          }
+                          Navigator.pop(context);
+                          loadProfiles();
                         },
                         child: Text(profile == null ? "Create" : "Save"),
                       ),
-                      const SizedBox(width: 12),
                     ],
                   )
                 ],
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   // --------------------------------------------------------------------------
-  // BUILD UI
+  // UI
   // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final loading = loadingProfiles || loadingMenus;
-
-    if (!hasPermission("userCanManageAccessLevels")) {
-      return const Scaffold(
-        body: Center(
-          child: Text(
-            "You do not have permission to manage access profiles.",
-            style: TextStyle(fontSize: 20),
-          ),
-        ),
-      );
-    }
-
-    final displayProfiles = filteredProfiles;
+    final display = filteredProfiles;
 
     return Scaffold(
       appBar: const Navbar(),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20),
+      body: Container(
+        color: const Color(0xFFF4F5F7),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
               child: Column(
                 children: [
-                  // Header Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Access Profiles",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (hasPermission("userCanManageAccessLevels"))
-                        ElevatedButton(
-                          onPressed: () => openProfileModal(),
-                          child: const Text("Create Profile"),
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Search and Filter Row
                   Row(
                     children: [
-                      // Search Bar
-                      Expanded(
-                        child: TextField(
-                          controller: searchCtrl,
-                          decoration: InputDecoration(
-                            labelText: "Search profiles...",
-                            hintText: "Name, description, or reference code",
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      searchCtrl.clear();
-                                    },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Access Profiles',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Manage access levels and permissions.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        height: 40,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 8,
+                            ),
+                          ),
+                          onPressed: () => openProfileModal(),
+                          icon: const Icon(Icons.add, size: 20),
+                          label: const Text('New'),
                         ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      // Active Filter
-                      FilterChip(
-                        label: const Text("Active Only"),
-                        selected: showActiveOnly,
-                        onSelected: (selected) {
-                          setState(() {
-                            showActiveOnly = selected;
-                            if (selected) showInactiveOnly = false;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Inactive Filter
-                      FilterChip(
-                        label: const Text("Inactive Only"),
-                        selected: showInactiveOnly,
-                        onSelected: (selected) {
-                          setState(() {
-                            showInactiveOnly = selected;
-                            if (selected) showActiveOnly = false;
-                          });
-                        },
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 12),
-
-                  // Results count
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Showing ${displayProfiles.length} of ${profiles.length} profiles",
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
+                  // FILTER CARD
+                  Card(
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: searchCtrl,
+                              decoration: InputDecoration(
+                                labelText: "Search",
+                                prefixIcon:
+                                    const Icon(Icons.search, size: 18),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          FilterChip(
+                            label: const Text("Active"),
+                            selected: showActiveOnly,
+                            onSelected: (v) {
+                              setState(() {
+                                showActiveOnly = v;
+                                if (v) showInactiveOnly = false;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: const Text("Inactive"),
+                            selected: showInactiveOnly,
+                            onSelected: (v) {
+                              setState(() {
+                                showInactiveOnly = v;
+                                if (v) showActiveOnly = false;
+                              });
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                  // Data Table
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text("Name")),
-                          DataColumn(label: Text("Description")),
-                          DataColumn(label: Text("Reference Code")),
-                          DataColumn(label: Text("Active")),
-                          DataColumn(label: Text("Menu Options")),
-                          DataColumn(label: Text("Actions")),
-                        ],
-                        rows: displayProfiles.map((p) {
-                          final menuIds = (p["menuOptions"] ?? []) as List;
-
-                          final names = menuIds.map((id) {
-                            final found = menuOptions.firstWhere(
-                              (m) => m["_id"] == id,
-                              orElse: () => {},
-                            );
-                            return found["name"] ?? "Unknown";
-                          }).join(", ");
-
-                          final bool active = p["isActive"] == true;
-
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(p["name"] ?? "")),
-                              DataCell(Text(p["description"] ?? "")),
-                              DataCell(Text(p["referenceCode"] ?? "")),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    Icon(
-                                      active ? Icons.check_circle : Icons.cancel,
-                                      color: active ? Colors.green : Colors.red,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(active ? "Yes" : "No"),
-                                  ],
-                                ),
-                              ),
-                              DataCell(
-                                SizedBox(
-                                  width: 200,
-                                  child: Text(
-                                    names.isEmpty ? "None" : names,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
+                    child: loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  headingRowHeight: 40,
+                                  dataRowHeight: 46,
+                                  headingTextStyle: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
                                   ),
-                                ),
-                              ),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    if (hasPermission("userCanManageAccessLevels"))
-                                      IconButton(
-                                        icon: const Icon(Icons.edit),
-                                        onPressed: () =>
-                                            openProfileModal(profile: p),
-                                      ),
-                                    if (active &&
-                                        hasPermission("userCanManageAccessLevels"))
-                                      IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () => deleteProfile(p),
-                                      ),
+                                  columns: const [
+                                    DataColumn(label: Text("Name")),
+                                    DataColumn(label: Text("Description")),
+                                    DataColumn(label: Text("Reference")),
+                                    DataColumn(label: Text("Active")),
+                                    DataColumn(label: Text("Actions")),
                                   ],
+                                  rows: display.map((p) {
+                                    final active = p["isActive"] == true;
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(Text(p["name"] ?? "")),
+                                        DataCell(Text(p["description"] ?? "")),
+                                        DataCell(Text(p["referenceCode"] ?? "")),
+                                        DataCell(
+                                          Icon(
+                                            active
+                                                ? Icons.check_circle
+                                                : Icons.cancel,
+                                            color: active
+                                                ? Colors.green
+                                                : Colors.red,
+                                            size: 16,
+                                          ),
+                                        ),
+                                        DataCell(
+                                          IconButton(
+                                            icon: const Icon(
+                                                Icons.edit_outlined),
+                                            onPressed: () =>
+                                                openProfileModal(profile: p),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
                                 ),
                               ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -493,14 +493,6 @@ class _EmployeesPageState extends State<EmployeesPage> {
     } catch (_) {}
   }
 
-  Future<void> _exportPdf() async {
-    try {
-      final res = await Api.send('GET', '/employees/export/pdf');
-      final content = res.body;
-      _downloadFile(content, 'employees.pdf', 'application/pdf');
-    } catch (_) {}
-  }
-
   Future<void> _showHistory(Employee employee) async {
     try {
       final res = await Api.send('GET', '/employees/${employee.id}/history');
@@ -894,26 +886,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
                           label: const Text('CSV'),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 40,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: BorderSide(color: Colors.grey.shade300),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                          ),
-                          onPressed: _exportPdf,
-                          icon: const Icon(Icons.picture_as_pdf_outlined,
-                              size: 18),
-                          label: const Text('PDF'),
-                        ),
-                      ),
+                    
                       const SizedBox(width: 8),
                       SizedBox(
                         height: 40,

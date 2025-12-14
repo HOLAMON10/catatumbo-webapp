@@ -22,52 +22,53 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   // 1️⃣ VERIFY TOKEN
   // --------------------------------------------------
   Future<void> verifyToken() async {
+  setState(() {
+    message = "";
+    loading = true;
+  });
+
+  final raw = tokenCtrl.text;
+  final token = raw.replaceAll(RegExp(r'\s+'), '');
+
+  print("RAW TOKEN: '$raw'");
+  print("CLEAN TOKEN: '$token'");
+
+  if (token.isEmpty) {
     setState(() {
-      message = "";
-      loading = true;
+      message = "Enter the 6-digit token.";
+      loading = false;
     });
-
-    final raw = tokenCtrl.text;
-    final token = raw.replaceAll(RegExp(r'\s+'), '');
-
-    print("RAW TOKEN: '$raw'");
-    print("CLEAN TOKEN: '$token'");
-
-    if (token.isEmpty) {
-      setState(() {
-        message = "Enter the 6-digit token.";
-        loading = false;
-      });
-      return;
-    }
-
-    try {
-      final res = await Api.send(
-        'GET',
-        '/auth/verifytoken/$token',
-        requireAuth: false,
-      );
-
-      final data = jsonDecode(res.body);
-
-      if (data['code'] == 'success') {
-        setState(() {
-          userId = data['detail'];
-          message = "Token verified — please enter a new password.";
-        });
-      } else {
-        throw data['detail'];
-      }
-    } catch (err) {
-      setState(() {
-        message = "Invalid token: $err";
-      });
-    } finally {
-      setState(() {
-        loading = false;
-      });
-    }
+    return;
   }
+
+  try {
+    final res = await Api.send(
+      'GET',
+      '/auth/verifytoken/$token',
+      requireAuth: false,
+    );
+
+    final data = jsonDecode(res.body);
+
+    if (data['code'] == 'success') {
+  setState(() {
+    userId = data['detail']['_id']; // just a flag, NOT an ID
+    message = "Token verified — please enter a new password.";
+  });
+} else {
+      throw data['detail'];
+    }
+  } catch (err) {
+    setState(() {
+      message = "Invalid token: $err";
+    });
+  } finally {
+    setState(() {
+      loading = false;
+    });
+  }
+}
+
 
   // --------------------------------------------------
   // 2️⃣ CHANGE PASSWORD

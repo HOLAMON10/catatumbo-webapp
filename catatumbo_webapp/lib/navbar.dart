@@ -91,7 +91,7 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
           ),
           PopupMenuItem(
             value: "meetingrooms",
-            child: Text("Meeting Rooms"),
+            child: Text("Salas de Reuniones"),
           ),
         ],
         child: InkWell(
@@ -193,7 +193,7 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
                             icon: Icons.group_outlined,
                           ),
                           navItem(
-                            label: 'Reserve a Meeting Room',
+                            label: 'Reservaciones',
                             route: '/reservations',
                             icon: Icons.group_outlined,
                           ),

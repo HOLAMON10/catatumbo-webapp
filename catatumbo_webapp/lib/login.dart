@@ -18,6 +18,7 @@ class _HomePageState extends State<HomePage> {
 
   bool loading = false;
   String message = '';
+  bool _obscurePassword = true; // Added for password visibility toggle
 
   Future<void> login() async {
     setState(() {
@@ -84,25 +85,32 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> sendRecoveryEmail(String email) async {
-    try {
-      final res = await Api.send(
-        'PUT',
-        '/auth/createrecoverypasswordtoken',
-        requireAuth: false,
-        payload: {'email': email.trim()},
-      );
+  // --------------------------------------------------------------------------
+  // RECOVERY EMAIL
+  // --------------------------------------------------------------------------
+Future<void> sendRecoveryEmail(String email) async {
+  try {
+    final res = await Api.send(
+      'PUT',
+      '/auth/createrecoverypasswordtoken',
+      requireAuth: false,
+      payload: {'email': email.trim()},
+    );
 
-      final data = jsonDecode(res.body);
+    final data = jsonDecode(res.body);
 
-      if (data['code'] == 'success') {
-        if (!mounted) return;
-        Navigator.pop(context); // cerrar diálogo
-        showDialog(
-          context: context,
-          builder: (_) => Dialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    if (data['code'] == 'success') {
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: SizedBox(
+            width: 360,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
               child: Column(
@@ -121,7 +129,6 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 10),
                   const Text(
                     "Si el correo existe, se ha enviado un código de recuperación de 6 dígitos.",
-                    style: TextStyle(fontSize: 14, color: Colors.black87),
                   ),
                   const SizedBox(height: 18),
                   Align(
@@ -135,18 +142,23 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-        );
-      } else {
-        throw data['detail'];
-      }
-    } catch (err) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      showDialog(
-        context: context,
-        builder: (_) => Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        ),
+      );
+    } else {
+      throw data['detail'];
+    }
+  } catch (err) {
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: SizedBox(
+          width: 360,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
             child: Column(
@@ -165,7 +177,6 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 10),
                 Text(
                   "No se pudo enviar el correo de recuperación: $err",
-                  style: const TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 18),
                 Align(
@@ -179,10 +190,15 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-      );
-    }
+      ),
+    );
   }
+}
 
+
+  // --------------------------------------------------------------------------
+  // FORGOT PASSWORD DIALOG (NARROWED)
+  // --------------------------------------------------------------------------
   void openForgotPasswordDialog() {
     final TextEditingController forgotCtrl = TextEditingController();
 
@@ -191,65 +207,67 @@ class _HomePageState extends State<HomePage> {
       builder: (_) => Dialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Recuperar contraseña",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: forgotCtrl,
-                decoration: const InputDecoration(
-                  labelText: "Correo electrónico",
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Cancelar"),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
-                      ),
+        child: SizedBox(
+          width: 360,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Recuperar contraseña",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
-                    onPressed: () {
-                      sendRecoveryEmail(forgotCtrl.text);
-                    },
-                    child: const Text("Enviar"),
-                  )
-                ],
-              ),
-            ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: forgotCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "Correo electrónico",
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Cancelar"),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        sendRecoveryEmail(forgotCtrl.text);
+                      },
+                      child: const Text("Enviar"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  // --------------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,176 +278,163 @@ class _HomePageState extends State<HomePage> {
             constraints: const BoxConstraints(maxWidth: 1050),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Lado izquierdo — texto
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            "Accede al panel",
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            "Administra empleados, perfiles de acceso\n"
-                            "y visualiza los analíticos en un solo lugar.",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                  const Text(
+                    "Accede al panel",
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Administra empleados, perfiles de acceso\n"
+                    "y visualiza los analíticos en un solo lugar.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
 
-                  // Lado derecho — card de login
-                  Expanded(
-                    child: Center(
-                      child: Card(
-                        elevation: 0,
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "Iniciar sesión",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                  SizedBox(
+                    width: 420,
+                    height: 420,
+                    child: Card(
+                      elevation: 0,
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Iniciar sesión",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "Usa tus credenciales corporativas.",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey,
-                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Usa tus credenciales corporativas.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                            ),
+                            const SizedBox(height: 20),
 
-                              TextField(
-                                controller: emailCtrl,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  labelText: "Correo electrónico",
-                                  prefixIcon: const Icon(
-                                    Icons.alternate_email_outlined,
-                                    size: 18,
+                            TextField(
+                              controller: emailCtrl,
+                              decoration: InputDecoration(
+                                labelText: "Correo electrónico",
+                                prefixIcon: const Icon(
+                                  Icons.alternate_email_outlined,
+                                  size: 18,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                isDense: true,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            TextField(
+                              controller: passCtrl,
+                              obscureText: _obscurePassword,
+                              decoration: InputDecoration(
+                                labelText: "Contraseña",
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline,
+                                  size: 18,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 20,
                                   ),
-                                  border: OutlineInputBorder(
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                isDense: true,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            TextButton(
+                              onPressed: openForgotPasswordDialog,
+                              child: const Text(
+                                "¿Olvidaste tu contraseña?",
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 42,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
-                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 14),
-                              TextField(
-                                controller: passCtrl,
-                                obscureText: true,
-                                decoration: InputDecoration(
-                                  labelText: "Contraseña",
-                                  prefixIcon: const Icon(
-                                    Icons.lock_outline,
-                                    size: 18,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  TextButton(
-                                    onPressed: openForgotPasswordDialog,
-                                    child: const Text(
-                                      "¿Olvidaste tu contraseña?",
-                                      style: TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-
-                              SizedBox(
-                                width: double.infinity,
-                                height: 42,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.black,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: loading ? null : login,
-                                  child: loading
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
-                                          ),
-                                        )
-                                      : const Text(
-                                          "Ingresar",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                onPressed: loading ? null : login,
+                                child: loading
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
                                         ),
+                                      )
+                                    : const Text(
+                                        "Ingresar",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                              ),
+                            ),
+
+                            if (message.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                message,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 13,
                                 ),
                               ),
-                              const SizedBox(height: 10),
-
-                              if (message.isNotEmpty)
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    message,
-                                    style: const TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
                             ],
-                          ),
+                          ],
                         ),
                       ),
                     ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+
 import 'api.dart';
 import 'navbar.dart';
 import 'models/user.dart';
@@ -20,13 +21,11 @@ class _UsersPageState extends State<UsersPage> {
   bool loadingMenus = true;
   bool loadingPermissions = true;
 
-  // Search/Filter state
   final TextEditingController searchCtrl = TextEditingController();
   String searchQuery = '';
   bool showActiveOnly = false;
   bool showInactiveOnly = false;
 
-  // Permission helper
   bool hasPermission(String perm) {
     return UserData.allowedPermissions?.contains(perm) ?? false;
   }
@@ -37,11 +36,9 @@ class _UsersPageState extends State<UsersPage> {
     loadUsers();
     loadMenuOptions();
     loadUserPermissions();
-    
+
     searchCtrl.addListener(() {
-      setState(() {
-        searchQuery = searchCtrl.text.toLowerCase();
-      });
+      setState(() => searchQuery = searchCtrl.text.toLowerCase());
     });
   }
 
@@ -52,26 +49,21 @@ class _UsersPageState extends State<UsersPage> {
   }
 
   // --------------------------------------------------------------------------
-  // FILTER USERS
+  // FILTER
   // --------------------------------------------------------------------------
   List<Map<String, dynamic>> get filteredUsers {
     return users.where((u) {
-      // Filter by search query
       if (searchQuery.isNotEmpty) {
-        final firstName = (u['firstName'] ?? '').toString().toLowerCase();
-        final lastName = (u['lastName'] ?? '').toString().toLowerCase();
-        final email = (u['email'] ?? '').toString().toLowerCase();
-        final userType = (u['userType'] ?? '').toString().toLowerCase();
-        
-        if (!firstName.contains(searchQuery) &&
-            !lastName.contains(searchQuery) &&
-            !email.contains(searchQuery) &&
-            !userType.contains(searchQuery)) {
-          return false;
-        }
+        final values = [
+          u['firstName'],
+          u['lastName'],
+          u['email'],
+          u['userType'],
+        ].map((e) => (e ?? '').toString().toLowerCase());
+
+        if (!values.any((v) => v.contains(searchQuery))) return false;
       }
 
-      // Filter by active status
       final isActive = u['isActive'] == true;
       if (showActiveOnly && !isActive) return false;
       if (showInactiveOnly && isActive) return false;
@@ -81,164 +73,134 @@ class _UsersPageState extends State<UsersPage> {
   }
 
   // --------------------------------------------------------------------------
-  // LOAD USERS
+  // LOAD DATA
   // --------------------------------------------------------------------------
   Future<void> loadUsers() async {
     if (!hasPermission("userCanAccessUserProfiles")) {
-      setState(() {
-        loadingUsers = false;
-      });
+      loadingUsers = false;
       return;
     }
 
     try {
-      final response = await Api.send(
-        'POST',
-        '/users/search',
-        payload: {},
-      );
-
-      final data = jsonDecode(response.body);
-      final List<dynamic> detail = data['detail'] ?? [];
-
-      setState(() {
-        users = detail.map((e) => Map<String, dynamic>.from(e)).toList();
-        loadingUsers = false;
-      });
-    } catch (e) {
-      print("Error loading users: $e");
-      users = [];
+      final res = await Api.send('POST', '/users/search');
+      final body = jsonDecode(res.body);
+      users = (body['detail'] ?? [])
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } finally {
       loadingUsers = false;
+      setState(() {});
     }
   }
 
-  // --------------------------------------------------------------------------
-  // LOAD ACCESS PROFILES
-  // --------------------------------------------------------------------------
   Future<void> loadMenuOptions() async {
     try {
       final res = await Api.send('POST', '/accessprofiles/search');
       final body = jsonDecode(res.body);
-      final List<dynamic> detailList = body['detail'] ?? [];
-
-      setState(() {
-        menuOptions =
-            detailList.map((e) => Map<String, dynamic>.from(e)).toList();
-        loadingMenus = false;
-      });
-    } catch (e) {
-      print("Error loading menu options: $e");
+      menuOptions = (body['detail'] ?? [])
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } finally {
       loadingMenus = false;
+      setState(() {});
     }
   }
 
-  // --------------------------------------------------------------------------
-  // LOAD USER PERMISSIONS
-  // --------------------------------------------------------------------------
   Future<void> loadUserPermissions() async {
     try {
-      final res = await Api.send(
-        'GET',
-        '/catalogs/userpermissions',
-      );
-
+      final res = await Api.send('GET', '/catalogs/userpermissions');
       final body = jsonDecode(res.body);
-      final List<dynamic> detailList = body['detail'] ?? [];
-
-      setState(() {
-        userPermissions =
-            detailList.map((p) => Map<String, dynamic>.from(p)).toList();
-        loadingPermissions = false;
-      });
-    } catch (e) {
-      print("Error loading permissions: $e");
+      userPermissions = (body['detail'] ?? [])
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } finally {
       loadingPermissions = false;
+      setState(() {});
     }
   }
 
   // --------------------------------------------------------------------------
-  // DEACTIVATE USER
-  // --------------------------------------------------------------------------
-  Future<void> deactivateUser(Map<String, dynamic> u) async {
-    if (!hasPermission("userCanDeactivateUser")) return;
-
-    final updated = Map<String, dynamic>.from(u);
-    updated["isActive"] = false;
-
-    try {
-      await Api.send('PUT', '/users', payload: updated);
-    } catch (e) {
-      print("Error deactivating user: $e");
-    }
-
-    loadUsers();
-  }
-
-  // --------------------------------------------------------------------------
-  // CONFIRM DEACTIVATION
+  // CONFIRM DEACTIVATION (STYLED)
   // --------------------------------------------------------------------------
   Future<void> confirmDeactivate(Map<String, dynamic> user) async {
-    if (!hasPermission("userCanDeactivateUser")) return;
-
     final fullName =
         "${user['firstName'] ?? ''} ${user['lastName'] ?? ''}".trim();
 
-    final result = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Deactivate User?"),
-        content: Text(
-            "Are you sure you want to deactivate $fullName?\nThey will no longer be able to log in."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: SizedBox(
+          width: 360,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Dar de baja usuario",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "¿Deseas dar de baja a $fullName?",
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text("Cancelar"),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text("Dar de baja"),
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Deactivate"),
-          ),
-        ],
+        ),
       ),
     );
 
-    if (result == true) deactivateUser(user);
+    if (confirmed == true) {
+      user['isActive'] = false;
+      await Api.send('PUT', '/users', payload: user);
+      loadUsers();
+    }
   }
 
   // --------------------------------------------------------------------------
-  // USER MODAL WITH TABS
+  // USER MODAL (FULLY STYLED)
   // --------------------------------------------------------------------------
   void openUserModal({Map<String, dynamic>? user}) {
     final bool isEdit = user != null;
-
-    // Permissions enforcement
-    if (isEdit && !hasPermission("userCanModifyExistingUser")) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You cannot modify users.")),
-      );
-      return;
-    }
-    if (!isEdit && !hasPermission("userCanCreateNewUser")) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You cannot create users.")),
-      );
-      return;
-    }
 
     final firstCtrl = TextEditingController(text: user?['firstName'] ?? '');
     final lastCtrl = TextEditingController(text: user?['lastName'] ?? '');
     final emailCtrl = TextEditingController(text: user?['email'] ?? '');
     final typeCtrl = TextEditingController(text: user?['userType'] ?? '');
     final dashboardUrlCtrl =
-    TextEditingController(text: user?['dashboardUrl'] ?? '');
+        TextEditingController(text: user?['dashboardUrl'] ?? '');
 
-
-    String? userId = user?['_id'];
     String? selectedMenuOption = user?['accessProfile'];
     bool isActive = user?['isActive'] ?? true;
 
-    // Load user's permissions from DB field
     List<String> selectedPermissions =
         List<String>.from(user?['allowedPermissions'] ?? []);
 
@@ -248,359 +210,450 @@ class _UsersPageState extends State<UsersPage> {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setStateSB) {
-          return AlertDialog(
-            title: Text(isEdit ? "Edit User" : "Create User"),
-            content: SizedBox(
-              width: 500,
-              child: DefaultTabController(
-                length: canModifyPermissions ? 2 : 1,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TabBar(
-                      tabs: [
-                        const Tab(text: "Info"),
-                        if (canModifyPermissions)
-                          const Tab(text: "Permissions"),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 400,
-                      child: TabBarView(
-                        children: [
-                          // ------------------------- INFO TAB -------------------------
-                          SingleChildScrollView(
-                            child: Column(
-                              children: [
-                                TextField(
-                                  controller: firstCtrl,
-                                  decoration: const InputDecoration(labelText: "First Name"),
-                                ),
-                                TextField(
-                                  controller: lastCtrl,
-                                  decoration: const InputDecoration(labelText: "Last Name"),
-                                ),
-                                TextField(
-                                  controller: emailCtrl,
-                                  decoration: const InputDecoration(labelText: "Email"),
-                                ),
-                                TextField(
-                                  controller: typeCtrl,
-                                  decoration: const InputDecoration(labelText: "User Type"),
-                                ),
-                                TextField(
-                                  controller: dashboardUrlCtrl,
-                                  decoration: const InputDecoration(labelText: "Dashboard URL"),
-                                ),
-
-                                const SizedBox(height: 20),
-
-                                DropdownButtonFormField<String>(
-                                  value: selectedMenuOption,
-                                  decoration:
-                                      const InputDecoration(labelText: "Menu Option"),
-                                  items: menuOptions.map((p) {
-                                    final id = p['_id']?.toString() ?? '';
-                                    return DropdownMenuItem<String>(
-                                      value: id,
-                                      child: Text(p['name']),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    setStateSB(() => selectedMenuOption = val);
-                                  },
-                                ),
-
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text("Active"),
-                                    Switch(
-                                      value: isActive,
-                                      onChanged: (v) {
-                                        setStateSB(() => isActive = v);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // ---------------------- PERMISSIONS TAB ----------------------
-                          if (canModifyPermissions)
-                            ListView(
-                              children: userPermissions.map((perm) {
-                                final id = perm['_id']?.toString() ?? '';
-                                final name = perm['name'];
-
-                                return CheckboxListTile(
-                                  title: Text(name),
-                                  value: selectedPermissions.contains(id),
-                                  onChanged: (checked) {
-                                    setStateSB(() {
-                                      if (checked == true) {
-                                        selectedPermissions.add(id);
-                                      } else {
-                                        selectedPermissions.remove(id);
-                                      }
-                                    });
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final payload = {
-                    "firstName": firstCtrl.text,
-                    "lastName": lastCtrl.text,
-                    "email": emailCtrl.text,
-                    "userType": typeCtrl.text,
-                    "accessProfile": selectedMenuOption,
-                    "dashboardUrl": dashboardUrlCtrl.text,
-                    "isActive": isActive,
-                  };
-
-                  // Only add permissions if user may edit them
-                  if (canModifyPermissions) {
-                    payload["allowedPermissions"] = selectedPermissions;
-                  }
-
-                  try {
-                    if (isEdit) {
-                      payload["_id"] = userId;
-                      await Api.send('PUT', '/users', payload: payload);
-                    } else {
-                      await Api.send('POST', '/users', payload: payload);
-                    }
-                  } catch (e) {
-                    print("Error saving user: $e");
-                  }
-
-                  Navigator.pop(context);
-                  loadUsers();
-                },
-                child: Text(isEdit ? "Save" : "Create"),
-              )
-            ],
-          );
-        });
-      },
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // BUILD UI
-  // --------------------------------------------------------------------------
-  @override
-  Widget build(BuildContext context) {
-    final loading = loadingUsers || loadingMenus || loadingPermissions;
-
-    if (!hasPermission("userCanAccessUserProfiles")) {
-      return const Scaffold(
-        body: Center(
-          child: Text(
-            "You do not have permission to view user profiles.",
-            style: TextStyle(fontSize: 20),
-          ),
-        ),
-      );
-    }
-
-    final displayUsers = filteredUsers;
-
-    return Scaffold(
-      appBar: const Navbar(),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20),
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        insetPadding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
+            child: DefaultTabController(
+              length: canModifyPermissions ? 2 : 1,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Users",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (hasPermission("userCanCreateNewUser"))
-                        ElevatedButton(
-                          onPressed: () => openUserModal(),
-                          child: const Text("Create User"),
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Search and Filter Row
-                  Row(
-                    children: [
-                      // Search Bar
-                      Expanded(
-                        child: TextField(
-                          controller: searchCtrl,
-                          decoration: InputDecoration(
-                            labelText: "Search users...",
-                            hintText: "Name, email, or type",
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      searchCtrl.clear();
-                                    },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      // Active Filter
-                      FilterChip(
-                        label: const Text("Active Only"),
-                        selected: showActiveOnly,
-                        onSelected: (selected) {
-                          setState(() {
-                            showActiveOnly = selected;
-                            if (selected) showInactiveOnly = false;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Inactive Filter
-                      FilterChip(
-                        label: const Text("Inactive Only"),
-                        selected: showInactiveOnly,
-                        onSelected: (selected) {
-                          setState(() {
-                            showInactiveOnly = selected;
-                            if (selected) showActiveOnly = false;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Results count
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "Showing ${displayUsers.length} of ${users.length} users",
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
+                      isEdit ? "Editar usuario" : "Nuevo usuario",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
-                  // Data Table
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text("First Name")),
-                          DataColumn(label: Text("Last Name")),
-                          DataColumn(label: Text("Email")),
-                          DataColumn(label: Text("Type")),
-                          DataColumn(label: Text("Active")),
-                          DataColumn(label: Text("Menu Option")),
-                          DataColumn(label: Text("Actions")),
-                        ],
-                        rows: displayUsers.map((u) {
-                          String menuName = "N/A";
-
-                          final menuId = u['accessProfile']?.toString();
-                          if (menuId != null) {
-                            final found = menuOptions.where(
-                              (p) => p['_id'] == menuId,
-                            );
-                            if (found.isNotEmpty) {
-                              menuName = found.first['name'];
-                            }
-                          }
-
-                          final bool active = u['isActive'] == true;
-
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(u['firstName'] ?? '')),
-                              DataCell(Text(u['lastName'] ?? '')),
-                              DataCell(Text(u['email'] ?? '')),
-                              DataCell(Text(u['userType'] ?? '')),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    Icon(
-                                      active ? Icons.check_circle : Icons.cancel,
-                                      color: active ? Colors.green : Colors.red,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(active ? "Yes" : "No"),
-                                  ],
+                  TabBar(
+                    tabs: [
+                      const Tab(text: "Info"),
+                      if (canModifyPermissions)
+                        const Tab(text: "Permisos"),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 360,
+                    child: TabBarView(
+                      children: [
+                        // INFO TAB
+                        SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              TextField(
+                                controller: firstCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: "Nombre",
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
                                 ),
                               ),
-                              DataCell(Text(menuName)),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    if (hasPermission("userCanModifyExistingUser"))
-                                      IconButton(
-                                        icon: const Icon(Icons.edit),
-                                        onPressed: () => openUserModal(user: u),
-                                      ),
-                                    if (active &&
-                                        hasPermission("userCanDeactivateUser"))
-                                      IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () => confirmDeactivate(u),
-                                      ),
-                                  ],
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: lastCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: "Apellido",
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
                                 ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: emailCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: "Email",
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: typeCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: "Tipo de usuario",
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: dashboardUrlCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: "Dashboard URL",
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              DropdownButtonFormField<String>(
+                                value: selectedMenuOption,
+                                decoration: const InputDecoration(
+                                  labelText: "Perfil de acceso",
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                items: menuOptions.map<DropdownMenuItem<String>>((p) {
+  final id = p['_id']?.toString() ?? '';
+  return DropdownMenuItem<String>(
+    value: id,
+    child: Text(p['name']),
+  );
+}).toList(),
+                                onChanged: (v) =>
+                                    selectedMenuOption = v,
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text("Activo"),
+                                  Switch(
+                                    value: isActive,
+                                    onChanged: (v) =>
+                                        isActive = v,
+                                  ),
+                                ],
                               ),
                             ],
-                          );
-                        }).toList(),
-                      ),
+                          ),
+                        ),
+
+                        // PERMISSIONS TAB
+                        if (canModifyPermissions)
+                          ListView(
+                            children: userPermissions.map((perm) {
+                              final id = perm['_id'];
+                              return CheckboxListTile(
+                                title: Text(perm['name']),
+                                value: selectedPermissions.contains(id),
+                                onChanged: (v) {
+                                  if (v == true) {
+                                    selectedPermissions.add(id);
+                                  } else {
+                                    selectedPermissions.remove(id);
+                                  }
+                                },
+                              );
+                            }).toList(),
+                          ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancelar"),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final payload = {
+                            "firstName": firstCtrl.text,
+                            "lastName": lastCtrl.text,
+                            "email": emailCtrl.text,
+                            "userType": typeCtrl.text,
+                            "dashboardUrl": dashboardUrlCtrl.text,
+                            "accessProfile": selectedMenuOption,
+                            "isActive": isActive,
+                            if (canModifyPermissions)
+                              "allowedPermissions": selectedPermissions,
+                            if (isEdit) "_id": user?['_id'],
+                          };
+
+                          await Api.send(
+                            isEdit ? 'PUT' : 'POST',
+                            '/users',
+                            payload: payload,
+                          );
+
+                          Navigator.pop(context);
+                          loadUsers();
+                        },
+                        child: Text(isEdit ? "Guardar" : "Crear"),
+                      ),
+                    ],
+                  )
                 ],
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
+
+  // --------------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------------
+ @override
+Widget build(BuildContext context) {
+  final loading = loadingUsers || loadingMenus || loadingPermissions;
+
+  return Scaffold(
+    appBar: const Navbar(),
+    body: Container(
+      color: const Color(0xFFF4F5F7),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      // HEADER
+                      Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Usuarios',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Administra cuentas y permisos.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          if (hasPermission("userCanCreateNewUser"))
+                            SizedBox(
+                              height: 40,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                onPressed: () => openUserModal(),
+                                icon: const Icon(Icons.add, size: 20),
+                                label: const Text("Nuevo"),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // FILTERS (MATCHING CARD STYLE)
+                      Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: searchCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: 'Buscar',
+                                    isDense: true,
+                                    prefixIcon:
+                                        const Icon(Icons.search, size: 18),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              FilterChip(
+                                label: const Text("Activos"),
+                                selected: showActiveOnly,
+                                onSelected: (v) {
+                                  setState(() {
+                                    showActiveOnly = v;
+                                    if (v) showInactiveOnly = false;
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text("Inactivos"),
+                                selected: showInactiveOnly,
+                                onSelected: (v) {
+                                  setState(() {
+                                    showInactiveOnly = v;
+                                    if (v) showActiveOnly = false;
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                height: 40,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  onPressed: () => setState(() {}),
+                                  icon: const Icon(Icons.filter_list, size: 18),
+                                  label: const Text('Aplicar'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // TABLE (MATCH MEETING ROOMS CARD + PADDING + DATATABLE SIZING)
+                      Expanded(
+                        child: Card(
+                          elevation: 0,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                headingRowHeight: 40,
+                                dataRowHeight: 46,
+                                headingTextStyle: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                                columns: const [
+                                  DataColumn(label: Text("Nombre")),
+                                  DataColumn(label: Text("Email")),
+                                  DataColumn(label: Text("Tipo")),
+                                  DataColumn(label: Text("Estado")),
+                                  DataColumn(label: Text("Acciones")),
+                                ],
+                                rows: filteredUsers.map((u) {
+                                  final active = u['isActive'] == true;
+
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(Text(
+                                        "${u['firstName'] ?? ''} ${u['lastName'] ?? ''}",
+                                      )),
+                                      DataCell(Text((u['email'] ?? '').toString())),
+                                      DataCell(Text((u['userType'] ?? '').toString())),
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(999),
+                                            color: active
+                                                ? Colors.green.shade50
+                                                : Colors.red.shade50,
+                                          ),
+                                          child: Text(
+                                            active ? 'Activo' : 'Inactivo',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: active
+                                                  ? Colors.green.shade700
+                                                  : Colors.red.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (hasPermission(
+                                                "userCanModifyExistingUser"))
+                                              IconButton(
+                                                tooltip: 'Editar',
+                                                icon: const Icon(
+                                                  Icons.edit_outlined,
+                                                  size: 20,
+                                                ),
+                                                onPressed: () =>
+                                                    openUserModal(user: u),
+                                              ),
+                                            if (active &&
+                                                hasPermission(
+                                                    "userCanDeactivateUser"))
+                                              IconButton(
+                                                tooltip: 'Dar de baja',
+                                                icon: Icon(
+                                                  Icons.block_outlined,
+                                                  size: 20,
+                                                  color: Colors.red.shade400,
+                                                ),
+                                                onPressed: () =>
+                                                    confirmDeactivate(u),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 }
