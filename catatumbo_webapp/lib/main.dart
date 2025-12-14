@@ -6,7 +6,8 @@ import 'employees_page.dart';
 import 'session.dart';
 import 'login.dart';
 import 'dashboard.dart';
-import 'placeholderpage.dart';
+import 'meetingrooms.dart';
+import 'meetingroomreservation.dart';
 import 'users_page.dart';
 import 'access_profile.dart';
 import 'auth_guard.dart';
@@ -41,6 +42,10 @@ class MyApp extends StatelessWidget {
         "/users": (_) => AuthGuard(child: const UsersPage()),
         "/access-profiles": (_) => AuthGuard(child: const AccessProfilesPage()),
         "/employees": (_) => AuthGuard(child: const EmployeesPage()),
+        "/meeting-rooms": (_) => AuthGuard(child: const MeetingRoomsPage()),
+        "/reservations": (_) => AuthGuard(child: const MeetingRoomReservationsPage()),
+
+
       },
 
       onGenerateRoute: (settings) {

@@ -76,6 +76,9 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
           } else if (value == "access") {
             Navigator.pushReplacementNamed(context, '/access-profiles');
           }
+          else if (value == "meetingrooms") {
+            Navigator.pushReplacementNamed(context, '/meeting-rooms');
+          }
         },
         itemBuilder: (context) => const [
           PopupMenuItem(
@@ -85,6 +88,10 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
           PopupMenuItem(
             value: "access",
             child: Text("Perfiles de acceso"),
+          ),
+          PopupMenuItem(
+            value: "meetingrooms",
+            child: Text("Meeting Rooms"),
           ),
         ],
         child: InkWell(
@@ -183,6 +190,11 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
                           navItem(
                             label: 'Empleados',
                             route: '/employees',
+                            icon: Icons.group_outlined,
+                          ),
+                          navItem(
+                            label: 'Reserve a Meeting Room',
+                            route: '/reservations',
                             icon: Icons.group_outlined,
                           ),
                           const SizedBox(width: 4),
